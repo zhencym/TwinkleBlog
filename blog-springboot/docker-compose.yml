@@ -1,0 +1,23 @@
+# 当前docker-compose文件仍未配置成功
+version: '3.8'
+services:
+  myapp:
+    build:
+      context: /home/docker/thatblog     # Dockerfile路径
+    image: thatblog
+    container_name: thatblog
+    depends_on:
+      - redis
+    ports:
+      - "9000:8000"
+    restart: always    # Docker重启时，容器自动启动
+    privileged: true
+
+  redis:
+    image: "redis"
+    container_name: redis
+    ports:
+      - "6379:6379"
+    restart: always    # Docker重启时，容器自动启动
+    command:
+      redis-server /etc/redis/redis.conf

@@ -1,0 +1,110 @@
+#配置端口
+server:
+  port: 8666
+  servlet:
+    session:
+      timeout: 21600
+
+#配置mysql数据库
+spring:
+#  profiles:
+#    active: dev #开发环境, 上线后删除
+  aop:
+    proxy-target-class: false #禁用CGLIB代理，使用java内置动态代理。为了能使用WebSocket
+  application:
+    name: MyBlog
+  datasource:
+    type: com.zaxxer.hikari.HikariDataSource
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    #url: jdbc:mysql://192.168.95.137:3306/blog?serverTimezone=GMT%2B8&allowMultiQueries=true
+    #url: jdbc:mysql://mysql:3306/blog?serverTimezone=GMT%2B8&allowMultiQueries=true
+    url: jdbc:mysql://43.139.142.79:3306/blog?serverTimezone=GMT%2B8&allowMultiQueries=true
+    #43.139.142.79
+    username: root
+    #password: 666666
+    password: cymsql66
+    hikari:
+      minimum-idle: 5
+      # 空闲连接存活最大时间，默认600000（10分钟）
+      idle-timeout: 180000
+      # 连接池最大连接数，默认是10
+      maximum-pool-size: 10
+      # 此属性控制从池返回的连接的默认自动提交行为,默认值：true
+      auto-commit: true
+      # 连接池名称
+      pool-name: MyHikariCP
+      # 此属性控制池中连接的最长生命周期，值0表示无限生命周期，默认1800000即30分钟
+      max-lifetime: 1800000
+      # 数据库连接超时时间,默认30秒，即30000
+      connection-timeout: 30000
+      connection-test-query: SELECT 1
+  #redis配置
+  redis:
+    port: 6379
+    #host: 192.168.95.137
+    #host: redis
+    host: 43.139.142.79
+    password: credis66
+    database: 1
+  #mq配置
+  rabbitmq:
+    #host: 192.168.95.137
+    #host: rabbit
+    host: 43.139.142.79
+    #43.139.142.79
+    port: 5672
+    # 原本为：15672，是管理页访问端口，5672是MQ访问的端口
+    username: root
+    #username: admin
+    password: admin
+  #邮箱配置
+  mail:
+    host: smtp.qq.com
+#    username: 1540504095@qq.com
+#    password: sqkiztpsoovohiec
+    username: 1540504013@qq.com
+    password: brrvzzwpouzkjbhd
+    default-encoding: UTF-8
+    port: 587
+    properties:
+      mail:
+      smtp:
+      auth: true
+      socketFactory:
+      class: javax.net.ssl.SSLSocketFactory
+  #图片大小限制
+  servlet:
+    multipart:
+      max-file-size: 40MB
+      max-request-size: 100MB
+
+
+##es配置
+#elasticsearch:
+#  host: 43.139.142.79
+#  port: 9200
+
+#搜索模式
+search:
+  mode: mysql
+#上传模式
+
+#配置MybatisPlus
+mybatis-plus:
+  mapper-locations: classpath:mapper/*.xml
+  configuration:
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+    map-underscore-to-camel-case: true
+
+#第三方配置信息
+qq:
+  app-id: "1540504013"
+  user-info-url: "https://graph.qq.com/user/get_user_info?openid={openid}&access_token={access_token}&oauth_consumer_key={oauth_consumer_key}"
+
+
+aliyun:
+  url: "https://cymoss.oss-cn-guangzhou.aliyuncs.com/"
+  endpoint: "https://oss-cn-guangzhou.aliyuncs.com/"
+  accessKeyId: "LTAI5t6wBmw7VEosqChdFsmU"
+  accessKeySecret: "tI6JPtOIA0vZ5l3fDknayLaZ51X6bP"
+  bucketName: "cymoss"

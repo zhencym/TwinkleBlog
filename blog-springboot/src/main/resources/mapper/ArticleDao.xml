@@ -1,0 +1,284 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.yuming.blog.dao.ArticleDao">
+
+    <resultMap id="articleHomeResultMap" type="com.yuming.blog.dto.ArticleHomeDTO">
+        <id column="id" property="id"/>
+        <result column="article_cover" property="articleCover"/>
+        <result column="article_title" property="articleTitle"/>
+        <result column="article_content" property="articleContent"/>
+        <result column="create_time" property="createTime"/>
+        <result column="is_top" property="isTop"/>
+        <result column="category_id" property="categoryId"/>
+        <result column="category_name" property="categoryName"/>
+        <collection property="tagDTOList" ofType="com.yuming.blog.dto.TagDTO">
+            <id column="tag_id" property="id"/>
+            <result column="tag_name" property="tagName"/>
+        </collection>
+    </resultMap>
+
+    <resultMap id="articlePreviewResultMap" type="com.yuming.blog.dto.ArticlePreviewDTO">
+        <id column="id" property="id"/>
+        <result column="article_cover" property="articleCover"/>
+        <result column="article_title" property="articleTitle"/>
+        <result column="create_time" property="createTime"/>
+        <result column="category_id" property="categoryId"/>
+        <result column="category_name" property="categoryName"/>
+        <collection property="tagDTOList" ofType="com.yuming.blog.dto.TagDTO">
+            <id column="tag_id" property="id"/>
+            <result column="tag_name" property="tagName"/>
+        </collection>
+    </resultMap>
+
+    <resultMap id="articleResultMap" type="com.yuming.blog.dto.ArticleDTO">
+        <id column="id" property="id"/>
+        <result column="article_cover" property="articleCover"/>
+        <result column="article_title" property="articleTitle"/>
+        <result column="article_content" property="articleContent"/>
+        <result column="create_time" property="createTime"/>
+        <result column="update_time" property="updateTime"/>
+        <result column="category_id" property="categoryId"/>
+        <result column="category_name" property="categoryName"/>
+        <collection property="tagDTOList" ofType="com.yuming.blog.dto.TagDTO"> <!-- 1对多用collection-->
+            <id column="tag_id" property="id"/>
+            <result column="tag_name" property="tagName"/>
+        </collection>
+    </resultMap>
+
+    <resultMap id="articleBackResultMap" type="com.yuming.blog.dto.ArticleBackDTO">
+        <id column="id" property="id"/>
+        <result column="article_title" property="articleTitle"/>
+        <result column="create_time" property="createTime"/>
+        <result column="update_time" property="updateTime"/>
+        <result column="is_top" property="isTop"/>
+        <result column="is_draft" property="isDraft"/>
+        <result column="is_delete" property="isDelete"/>
+        <result column="category_name" property="categoryName"/>
+        <collection property="tagDTOList" ofType="com.yuming.blog.dto.TagDTO">
+            <id column="tag_id" property="id"/>
+            <result column="tag_name" property="tagName"/>
+        </collection>
+    </resultMap>
+
+    <resultMap id="articleSearchResultMap" type="com.yuming.blog.dto.ArticleSearchDTO">
+        <id column="id" property="id"/>
+        <result column="article_title" property="articleTitle"/>
+        <result column="article_content" property="articleContent"/>
+        <result column="is_delete" property="isDelete"/>
+    </resultMap>
+
+    <select id="listArticlesByTitleContent" resultMap="articleSearchResultMap">
+        select
+            id,
+            article_title,
+            article_content,
+            is_delete
+        from tb_article where
+            article_title like CONCAT("%", #{condition.keywords} , "%" ) OR  <!-- 模糊查询，用concat连接字符串-->
+            article_content like CONCAT("%", #{condition.keywords} , "%" )
+        ORDER BY create_time DESC
+    </select>
+
+    <select id="listArticles" resultMap="articleHomeResultMap">
+     SELECT
+	 a.id,
+	 article_cover,
+	 article_title,
+	 article_content,
+	 a.create_time,
+	 a.is_top,
+	 a.category_id,
+	 category_name,
+	 t.id AS tag_id,
+	 t.tag_name
+     FROM
+	 (
+	 SELECT
+		id,
+		article_cover,
+		article_title,
+		article_content,
+		is_top,
+		create_time,
+		category_id
+	    FROM
+ 		tb_article
+ 		WHERE is_delete = 0
+ 		and is_draft = 0
+		ORDER BY is_top DESC,id DESC  <!--找出未删除，非草稿的文章，按置顶，id降序排序 -->
+    LIMIT #{current} , 10
+	 ) a
+	 JOIN tb_category c ON a.category_id = c.id <!--连接文章表、分类表、标签表、文章标签表 -->
+	 JOIN tb_article_tag atg ON a.id = atg.article_id
+	 JOIN tb_tag t ON t.id = atg.tag_id
+	 ORDER BY a.is_top DESC,a.id DESC
+    </select>
+
+    <select id="listArticlesByCondition" resultMap="articlePreviewResultMap">
+        SELECT
+        a.id,
+        article_cover,
+        article_title,
+        a.create_time,
+        a.category_id,
+        category_name,
+        t.id AS tag_id,
+        t.tag_name
+        FROM
+        (
+        SELECT
+        id,
+        article_cover,
+        article_title,
+        article_content,
+        create_time,
+        category_id
+        FROM
+        tb_article
+        <where>
+            <if test="condition.categoryId != null">
+                category_id =#{condition.categoryId}
+            </if>
+            <if test="condition.tagId != null">
+                AND id IN (
+                SELECT <!--含有这个标签的所有文章，查出来的文章是其中一些 -->
+                article_id
+                FROM
+                tb_article_tag
+                WHERE
+                tag_id = #{condition.tagId})
+            </if>
+            <if test="1 == 1">
+            AND is_delete = 0
+            AND is_draft = 0
+            </if>
+        </where>
+        ORDER BY id DESC
+        LIMIT #{condition.current} , 9   <!--手动分页，从第current条开始，返回9条数据 -->
+        ) a
+        JOIN tb_category c ON a.category_id = c.id
+        JOIN tb_article_tag atg ON a.id = atg.article_id
+        JOIN tb_tag t ON t.id = atg.tag_id
+    </select>
+
+    <select id="getArticleById" resultMap="articleResultMap">
+	 SELECT
+	 a.id,
+	 article_cover,
+	 article_title,
+	 article_content,
+	 a.create_time,
+	 a.update_time,
+	 a.category_id,
+	 category_name,
+	 t.id AS tag_id,
+	 t.tag_name
+     FROM
+	 tb_article a
+	 JOIN tb_category c ON a.category_id = c.id <!--连表：文章表、分类表、标签文章表、标签表 -->
+	 JOIN tb_article_tag atg ON a.id = atg.article_id
+	 JOIN tb_tag t ON t.id = atg.tag_id
+     WHERE
+	 a.id = #{articleId}
+	</select>
+
+    <select id="listArticleBacks" resultMap="articleBackResultMap">
+        SELECT
+        a.id,
+        article_title,
+        is_top,
+        is_draft,
+        a.is_delete,
+        a.create_time,
+        a.update_time,
+        category_name,
+        t.id AS tag_id,
+        t.tag_name
+        FROM
+        (
+        SELECT
+        id,
+        article_title,
+        is_top,
+        is_draft,
+        is_delete,
+        create_time,
+        update_time,
+        category_id
+        FROM
+        tb_article
+        <where>
+            is_delete = #{condition.isDelete}  <!-- 实现删除、草稿、标题模糊查询、返回数目的查询 -->
+            <if test="condition.isDraft != null">
+                and is_draft = #{condition.isDraft}
+            </if>
+            <if test="condition.keywords != null">
+                and article_title like concat('%',#{condition.keywords},'%')
+            </if>
+        </where>
+        ORDER BY is_top DESC, id DESC
+        LIMIT #{condition.current},#{condition.size}
+        ) a
+        LEFT JOIN tb_category c ON a.category_id = c.id <!-- 后面连表得到分类名和标签名-->
+        LEFT JOIN tb_article_tag atg ON a.id = atg.article_id
+        LEFT JOIN tb_tag t ON t.id = atg.tag_id
+        ORDER BY is_top DESC, a.id DESC
+    </select>
+
+    <select id="countArticleBacks" resultType="java.lang.Integer">
+        SELECT
+        count(1)  <!-- count(1)就是对第一个字段行数统计-->
+        from
+        tb_article
+        <where>
+            is_delete = #{condition.isDelete} <!--统计删除、草稿、标题关键字文章的总数量 -->
+            <if test="condition.isDraft != null">
+                and is_draft = #{condition.isDraft}
+            </if>
+            <if test="condition.keywords != null">
+                and article_title like concat('%',#{condition.keywords},'%')
+            </if>
+        </where>
+    </select>
+
+    <select id="listArticleRank" resultType="com.yuming.blog.entity.Article">
+        SELECT
+        id,
+        article_title
+        FROM
+        tb_article
+        WHERE
+        id IN   <!-- foreach循环是为了构造出(value1,value2)的格式-->
+        <foreach collection="articleIdList" item="item" open="(" separator="," close=")">
+            #{item}
+        </foreach>
+        ORDER BY field  <!-- field是自定义排序，按照id字段，后面自定义的顺序排序，其实也就是articleIdList里面的id的顺序-->
+        <foreach collection="articleIdList" item="item" open="(id," separator="," close=")">
+            #{item}
+        </foreach>
+    </select>
+
+    <select id="listArticleRecommends" resultType="com.yuming.blog.dto.ArticleRecommendDTO">
+        SELECT
+            id,
+            article_title,
+            article_cover,
+            create_time
+        FROM
+            (
+              SELECT DISTINCT
+                article_id
+                FROM
+                 ( SELECT tag_id FROM tb_article_tag WHERE article_id = #{articleId} ) t
+                 JOIN tb_article_tag t1 ON t.tag_id = t1.tag_id <!-- 先查询该文章的所有标签id，再获取拥有这些标签的文章id，排除自己，排除重复-->
+                 WHERE
+                 article_id != #{articleId}
+            ) t2  <!-- 此时t2是拥有相同标签的其他文章id，再与文章表连接，获取这些文章内容-->
+               JOIN tb_article a ON t2.article_id = a.id
+        WHERE  a.is_delete = 0
+        ORDER BY
+            is_top DESC,id DESC <!--排序，置顶、id -->
+            LIMIT 6  <!--限制6个推荐。从第1个开始推荐，1-6 -->
+    </select>
+
+</mapper>

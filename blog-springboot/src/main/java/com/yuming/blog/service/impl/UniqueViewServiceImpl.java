@@ -28,9 +28,10 @@ public class UniqueViewServiceImpl extends ServiceImpl<UniqueViewDao, UniqueView
      * 定时任务
      * 把每天的用户量都存入unique_View表,用户量就是当天不同的IP数量，存在redis的ip集合中。
      * 每天0点定时执行。存完之后，每天0点10分定时执行清空redis中的ip集合
-     * 应该先保存，再清空，两者应该放在同一个定时方法里更合理
+     * 也可以先保存，再清空，两者应该放在同一个定时方法里更合理
+     * 每天0点执行一次（秒 分 时 日 月 周 ）
      */
-    @Scheduled(cron = " 0 0 0 * * ?")  //每天0点执行一次（秒 分 时 日 月 周 ）
+    @Scheduled(cron = " 0 0 0 * * ?")
     @Override
     public void saveUniqueView() {
         // 获取每天用户量

@@ -106,6 +106,7 @@ export default {
         this.$store.commit("resetTab");
         // 清空用户菜单
         resetRouter();
+        // 回到登陆页面
         this.$router.push({ path: "/login" });
       }
     },

@@ -3,7 +3,7 @@ package com.yuming.blog.exception;
 
 
 /**
- * 自定义异常类
+ * 服务器异常
  *
  */
 public class ServeException extends RuntimeException {

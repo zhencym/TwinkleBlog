@@ -240,15 +240,28 @@ export default {
           }
         })
         .then(({ data }) => {
-          this.roleList = data.data.recordList;
-          this.count = data.data.count;
-          this.loading = false;
+          if (data.flag) {
+            this.roleList = data.data.recordList;
+            this.count = data.data.count;
+            this.loading = false;
+          } else {
+            this.$notify.error({title: "失败", message: data.message});
+          }
+
         });
       this.axios.get("/api/admin/role/resources").then(({ data }) => {
-        this.resourceList = data.data;
+        if (data.flag) {
+          this.resourceList = data.data;
+        } else {
+          this.$notify.error({title: "失败", message: data.message});
+        }
       });
       this.axios.get("/api/admin/role/menus").then(({ data }) => {
-        this.menuList = data.data;
+        if (data.flag) {
+          this.menuList = data.data;
+        } else {
+          this.$notify.error({title: "失败", message: data.message});
+        }
       });
     },
     deleteRoles(id) {

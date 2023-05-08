@@ -3,6 +3,7 @@ package com.yuming.blog.service.impl;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.StringUtils;
 import com.yuming.blog.dao.*;
+import com.yuming.blog.dto.UserInfoDTO;
 import com.yuming.blog.entity.UserAuth;
 import com.yuming.blog.entity.UserInfo;
 import com.yuming.blog.exception.ServeException;
@@ -11,8 +12,6 @@ import com.yuming.blog.dao.UserAuthDao;
 import com.yuming.blog.dao.UserInfoDao;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.RedisTemplate;
-import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.Resource;
@@ -25,7 +24,7 @@ import static com.yuming.blog.utils.UserUtil.convertLoginUser;
 
 
 @Service
-public class UserDetailsServiceImpl implements UserDetailsService {
+public class UserDetailsServiceImpl {
     @Autowired
     private UserAuthDao userAuthDao;
     @Autowired
@@ -42,8 +41,7 @@ public class UserDetailsServiceImpl implements UserDetailsService {
      * @param username
      * @return
      */
-    @Override
-    public UserDetails loadUserByUsername(String username) {
+    public UserInfoDTO loadUserByUsername(String username) {
         if (StringUtils.isBlank(username)) {
             throw new ServeException("用户名不能为空！");
         }

@@ -3,6 +3,8 @@ package com.yuming.blog.annotation;
 import java.lang.annotation.*;
 
 /**
+ * @Author: zhencym
+ * @DATE: 2023/5/6
  * 操作日志注解
  *
  */
@@ -11,9 +13,23 @@ import java.lang.annotation.*;
 @Documented
 public @interface OptLog {
 
+
     /**
-     * @return 操作类型
+     * 注解参数，操作类型
+     * @return
      */
     String optType() default "";
+
+    /**
+     * 操作模块
+     * @return
+     */
+    String optModule() default "";
+
+    /**
+     * 操作说明
+     * @return
+     */
+    String optDesc() default "";
 
 }

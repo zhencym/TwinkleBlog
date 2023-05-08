@@ -4,6 +4,8 @@ package com.yuming.blog.handler;
 import com.yuming.blog.utils.IpUtil;
 import com.yuming.blog.utils.RedisLockUtils;
 import com.yuming.blog.constant.RedisPrefixConst;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -22,6 +24,8 @@ import javax.servlet.http.HttpSession;
  */
 @Component
 public class ServletRequestListenerImpl implements ServletRequestListener {
+
+    Logger logger = LoggerFactory.getLogger(ServletRequestListenerImpl.class);
     @Autowired
     private RedisTemplate redisTemplate;
     @Autowired
@@ -41,6 +45,7 @@ public class ServletRequestListenerImpl implements ServletRequestListener {
                 //上次访问session中的ip根本次访问request中的ip不一样，就更新session中的ip
                 session.setAttribute("ip", ipAddr);
                 redisTemplate.boundValueOps(RedisPrefixConst.BLOG_VIEWS_COUNT).increment(1);
+                logger.info("增加访问量，新IP {}", ipAddr);
             }
             // 将ip存入redis，统计每日用户量
             redisTemplate.boundSetOps(RedisPrefixConst.IP_SET).add(ipAddr);

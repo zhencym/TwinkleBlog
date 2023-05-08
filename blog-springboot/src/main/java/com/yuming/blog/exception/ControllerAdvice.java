@@ -1,4 +1,4 @@
-package com.yuming.blog.handler;
+package com.yuming.blog.exception;
 
 import com.yuming.blog.exception.ServeException;
 import com.yuming.blog.vo.Result;
@@ -25,6 +25,28 @@ public class ControllerAdvice {
     @ExceptionHandler(value = ServeException.class)
     public Result errorHandler(ServeException e) {
         return new Result(false, StatusConst.ERROR, e.getMessage());
+    }
+
+    /**
+     * 处理权限异常
+     *
+     * @param e
+     * @return
+     */
+    @ExceptionHandler(value = NotAccessException.class)
+    public Result errorHandler(NotAccessException e) {
+        return new Result(false, StatusConst.AUTHORIZED, e.getMessage());
+    }
+
+    /**
+     * 处理未登陆异常
+     *
+     * @param e
+     * @return
+     */
+    @ExceptionHandler(value = UnLoginException.class)
+    public Result errorHandler(UnLoginException e) {
+        return new Result(false, StatusConst.NOT_LOGIN, e.getMessage());
     }
 
     /**

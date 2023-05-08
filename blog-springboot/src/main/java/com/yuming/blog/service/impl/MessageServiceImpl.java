@@ -71,6 +71,6 @@ public class MessageServiceImpl extends ServiceImpl<MessageDao, Message> impleme
         List<MessageBackDTO> messageBackDTOList = BeanCopyUtil.copyList(messagePage.getRecords(), MessageBackDTO.class);
         return new PageDTO<>(messageBackDTOList, (int) messagePage.getTotal());
     }
-    //没有实现删除
+    // TODO 实现删除
 
 }

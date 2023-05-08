@@ -349,7 +349,11 @@ export default {
     changeTop(article) {
       let param = new URLSearchParams();
       param.append("isTop", article.isTop);
-      this.axios.put("/api/admin/articles/top/" + article.id, param);
+      this.axios.put("/api/admin/articles/top/" + article.id, param).then(({ data }) => {
+        if (!data.flag) {
+          this.$notify.error({title: "失败", message: data.message});
+        }
+      });
     },
     listArticles() {
       this.axios
@@ -363,9 +367,13 @@ export default {
           }
         })
         .then(({ data }) => {
-          this.articleList = data.data.recordList;
-          this.count = data.data.count;
-          this.loading = false;
+          if (data.flag) {
+            this.articleList = data.data.recordList;
+            this.count = data.data.count;
+            this.loading = false;
+          } else {
+            this.$notify.error({title: "失败", message: data.message});
+          }
         });
     }
   },

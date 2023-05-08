@@ -11,13 +11,6 @@ import java.util.List;
 
 public interface ResourceService extends IService<Resource> {
 
-    /**
-     * 导入swagger权限
-     * 每次启动都从从swagger文档中解析导入模块，实现动态的接口的管理。
-     * 即每次修改接口后重新启动，都会刷新重新载入数据库resources表
-     * 那我新增的资源，在重启后，不是重新从swagger文档中读取，新增的也没了？
-     */
-    void importSwagger();
 
     /**
      * 添加或修改资源

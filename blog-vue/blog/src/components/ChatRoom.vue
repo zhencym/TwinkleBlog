@@ -205,10 +205,9 @@ export default {
     connect() {
       var that = this;
       console.log("建立连接");
-      //this.websocket = new WebSocket("ws://127.0.0.1:8088/websocket");
+      this.websocket = new WebSocket("ws://127.0.0.1:8777/websocket");
       //this.websocket = new WebSocket("ws://43.139.142.79:8088/websocket");
-      //this.websocket = new WebSocket("ws://192.168.95.137:8666/websocket");
-      this.websocket = new WebSocket("ws://43.139.142.79:8777/websocket");
+      //this.websocket = new WebSocket("ws://43.139.142.79:8777/websocket");
       // 连接发生错误的回调方法
       this.websocket.onerror = function(event) {
         console.log(event);
@@ -398,7 +397,13 @@ export default {
           "Content-Type": "multipart/form-data"
         }
       };
-      this.axios(options);
+      this.axios(options).then(({ data }) => {
+        if (data.flag) {
+          this.$toast({ type: "success", message: data.message });
+        } else {
+          this.$toast({ type: "error", message: data.message });
+        }
+      });
     },
     translationmove() {},
     // 播放语音

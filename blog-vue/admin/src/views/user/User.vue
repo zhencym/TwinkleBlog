@@ -202,7 +202,11 @@ export default {
     changeDisable(user) {
       let param = new URLSearchParams();
       param.append("isDisable", user.isDisable);
-      this.axios.put("/api/admin/users/disable/" + user.userInfoId, param);
+      this.axios.put("/api/admin/users/disable/" + user.userInfoId, param).then(({ data }) => {
+        if (!data.flag) {
+          this.$notify.error({title: "失败", message: data.message});
+        }
+      });
     },
     openEditModel(user) {
       this.roleIdList = [];
@@ -242,12 +246,21 @@ export default {
           }
         })
         .then(({ data }) => {
-          this.userList = data.data.recordList;
-          this.count = data.data.count;
-          this.loading = false;
+          if (data.flag) {
+            this.userList = data.data.recordList;
+            this.count = data.data.count;
+            this.loading = false;
+          } else {
+            this.$notify.error({title: "失败", message: data.message});
+          }
+
         });
       this.axios.get("/api/admin/users/role").then(({ data }) => {
-        this.userRoleList = data.data;
+        if (data.flag) {
+          this.userRoleList = data.data;
+        } else {
+          this.$notify.error({title: "失败", message: data.message});
+        }
       });
     }
   }

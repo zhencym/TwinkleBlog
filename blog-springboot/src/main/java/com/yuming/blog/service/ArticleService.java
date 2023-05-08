@@ -18,12 +18,14 @@ import com.yuming.blog.dto.ArticleSearchDTO;
 import com.yuming.blog.dto.PageDTO;
 import java.util.List;
 
-
+/**
+ * 缓存了 首页文章、归档、标签
+ */
 public interface ArticleService extends IService<Article> {
 
     /**
      * 查询文章归档
-     *
+     * 文章归档不常写，加缓存
      * @param current 当前页码
      * @return 文章
      */
@@ -39,7 +41,7 @@ public interface ArticleService extends IService<Article> {
 
     /**
      * 查询首页文章
-     *
+     * 首页不常写，加redis缓存
      * @param current 当前页码
      * @return 文章
      */
@@ -54,13 +56,6 @@ public interface ArticleService extends IService<Article> {
      */
     ArticlePreviewListDTO listArticlesByCondition(ConditionVO condition);
 
-    /**
-     * 使用elastsearch搜索文章
-     *
-     * @param condition 条件
-     * @return 文章
-     */
-    List<ArticleSearchDTO> listArticlesBySearch(ConditionVO condition);
 
     /**
      * 根据文章标题查询文章
@@ -71,7 +66,7 @@ public interface ArticleService extends IService<Article> {
 
     /**
      * 根据id查看后台文章
-     *
+     * 需要更新浏览量，不缓存
      * @param articleId 文章id
      * @return 文章
      */
@@ -79,7 +74,7 @@ public interface ArticleService extends IService<Article> {
 
     /**
      * 根据id查看文章
-     *
+     * 需要更新浏览量，不缓存
      * @param articleId 文章id
      * @return 文章
      */
@@ -93,7 +88,7 @@ public interface ArticleService extends IService<Article> {
 
     /**
      * 查看文章分类标签选项
-     *
+     * 标签不常写，可缓存
      * @return 文章分类标签选项
      */
     ArticleOptionDTO listArticleOptionDTO();

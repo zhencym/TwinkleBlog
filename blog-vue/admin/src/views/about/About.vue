@@ -29,7 +29,11 @@ export default {
   methods: {
     getAbout() {
       this.axios.get("/api/about").then(({ data }) => {
-        this.aboutContent = data.data;
+        if (data.flag) {
+          this.aboutContent = data.data;
+        } else {
+          this.$notify.error({title: "失败", message: data.message});
+        }
       });
     },
     updateAbout() {

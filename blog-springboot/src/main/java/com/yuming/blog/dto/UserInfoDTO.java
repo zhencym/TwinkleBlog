@@ -2,12 +2,9 @@ package com.yuming.blog.dto;
 
 import lombok.Builder;
 import lombok.Data;
-import org.springframework.security.core.GrantedAuthority;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
-import org.springframework.security.core.userdetails.UserDetails;
+
 
 import java.util.*;
-import java.util.stream.Collectors;
 
 /**
  * 用户登录信息
@@ -15,7 +12,7 @@ import java.util.stream.Collectors;
  */
 @Data
 @Builder
-public class UserInfoDTO implements UserDetails {
+public class UserInfoDTO {
 
     /**
      * 用户账号id
@@ -106,42 +103,5 @@ public class UserInfoDTO implements UserDetails {
      * 最近登录时间
      */
     private Date lastLoginTime;
-
-
-
-    @Override
-    public Collection<? extends GrantedAuthority> getAuthorities() {
-        return this.roleList.stream().map(SimpleGrantedAuthority::new).collect(Collectors.toSet());
-    }
-
-    @Override
-    public String getPassword() {
-        return this.password;
-    }
-
-    @Override
-    public String getUsername() {
-        return this.username;
-    }
-
-    @Override
-    public boolean isAccountNonExpired() {
-        return true;
-    }
-
-    @Override
-    public boolean isAccountNonLocked() {
-        return true;
-    }
-
-    @Override
-    public boolean isCredentialsNonExpired() {
-        return true;
-    }
-
-    @Override
-    public boolean isEnabled() {
-        return true;
-    }
 
 }

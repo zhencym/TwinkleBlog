@@ -1,6 +1,8 @@
 package com.yuming.blog;
 
 
+import lombok.extern.log4j.Log4j;
+import lombok.extern.slf4j.Slf4j;
 import org.mybatis.spring.annotation.MapperScan;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -16,17 +18,14 @@ import org.springframework.web.client.RestTemplate;
  */
 @MapperScan("com.yuming.blog.dao")
 @SpringBootApplication
-@EnableScheduling //启动定时调用
-@EnableAsync //启动异步调用，提高并发能力
+@EnableScheduling
+@EnableAsync
+@Slf4j
 public class BlogApplication {
 
     public static void main(String[] args) {
         SpringApplication.run(BlogApplication.class, args);
     }
 
-    @Bean
-    public RestTemplate restTemplate() {
-        return new RestTemplate();
-    }
 
 }

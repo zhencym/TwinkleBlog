@@ -65,9 +65,8 @@ public class BlogInfoServiceImpl implements BlogInfoService {
         String notice = Objects.nonNull(value) ? value.toString() : "发布你的第一篇公告吧";
         // 查询访问量
         String viewsCount = Objects.requireNonNull(redisTemplate.boundValueOps(
-            RedisPrefixConst.BLOG_VIEWS_COUNT).get()).toString();//需要非空，否则抛异常
+            RedisPrefixConst.BLOG_VIEWS_COUNT).get()).toString();
         // 封装数据
-        //System.out.println(userInfo);
         return BlogHomeInfoDTO.builder()
                 .nickname(userInfo.getNickname())
                 .avatar(userInfo.getAvatar())
@@ -102,11 +101,11 @@ public class BlogInfoServiceImpl implements BlogInfoService {
         // 将文章进行倒序排序
         // 关键在于从redis取出键对值后，找出value前五的文章id，排序算法
         List<Integer> articleIdList = Objects.requireNonNull(articleViewsMap).entrySet().stream()
-                .sorted(Collections.reverseOrder(Map.Entry.comparingByValue())) //根据键值逆序排序
-                .map(item -> Integer.valueOf(item.getKey()))//map映射，把set里的每个键值对，取key，变成整数
+                .sorted(Collections.reverseOrder(Map.Entry.comparingByValue()))
+                .map(item -> Integer.valueOf(item.getKey()))
                 .collect(Collectors.toList());
         // 提取前五篇文章
-        int index = Math.min(articleIdList.size(), 5); //不足5篇就取size篇
+        int index = Math.min(articleIdList.size(), 5);
         articleIdList = articleIdList.subList(0, index);
         // 文章为空直接返回
         if (articleIdList.isEmpty()) {
@@ -128,13 +127,13 @@ public class BlogInfoServiceImpl implements BlogInfoService {
                 .build())
                 .collect(Collectors.toList());
         return BlogBackInfoDTO.builder()
-                .viewsCount(viewsCount) //访问量
-                .messageCount(messageCount) //留言量
-                .userCount(userCount) //用户量
-                .articleCount(articleCount) //文章量
-                .categoryDTOList(categoryDTOList) //分类
-                .uniqueViewDTOList(uniqueViewList) //一周访问量
-                .articleRankDTOList(articleRankDTOList) //文章访问量前五
+                .viewsCount(viewsCount)
+                .messageCount(messageCount)
+                .userCount(userCount)
+                .articleCount(articleCount)
+                .categoryDTOList(categoryDTOList)
+                .uniqueViewDTOList(uniqueViewList)
+                .articleRankDTOList(articleRankDTOList)
                 .build();
     }
 

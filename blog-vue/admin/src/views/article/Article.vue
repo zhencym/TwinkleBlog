@@ -112,7 +112,11 @@ export default {
     const articleId = arr[2];
     if (articleId) {
       this.axios.get("/api/admin/articles/" + articleId).then(({ data }) => {
-        this.article = data.data;
+        if (data.flag) {
+          this.article = data.data;
+        } else {
+          this.$notify.error({title: "失败", message: data.message});
+        }
       });
     }
     this.listArticleOptions();
@@ -142,8 +146,12 @@ export default {
   methods: {
     listArticleOptions() {
       this.axios.get("/api/admin/articles/options").then(({ data }) => {
-        this.categoryList = data.data.categoryDTOList;
-        this.tagList = data.data.tagDTOList;
+        if (data.flag) {
+          this.categoryList = data.data.categoryDTOList;
+          this.tagList = data.data.tagDTOList;
+        } else {
+          this.$notify.error({title: "失败", message: data.message});
+        }
       });
     },
     uploadCover(response) {
@@ -155,7 +163,11 @@ export default {
       this.axios
         .post("/api/admin/articles/images", formdata)
         .then(({ data }) => {
-          this.$refs.md.$img2Url(pos, data.data);
+          if (data.flag) {
+            this.$refs.md.$img2Url(pos, data.data);
+          } else {
+            this.$notify.error({title: "失败", message: data.message});
+          }
         });
     },
     saveArticleDraft() {

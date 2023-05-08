@@ -11,6 +11,7 @@ import com.yuming.blog.dto.EmailDTO;
 import com.yuming.blog.dto.ReplyCountDTO;
 import com.yuming.blog.entity.Comment;
 import com.yuming.blog.dao.CommentDao;
+import com.yuming.blog.handler.KafkaProducer;
 import com.yuming.blog.service.CommentService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.yuming.blog.utils.HTMLUtil;
@@ -19,15 +20,12 @@ import com.yuming.blog.utils.UserUtil;
 import com.yuming.blog.vo.CommentVO;
 import com.yuming.blog.vo.ConditionVO;
 import com.yuming.blog.vo.DeleteVO;
-import com.yuming.blog.constant.MQPrefixConst;
 import com.yuming.blog.constant.RedisPrefixConst;
 import com.yuming.blog.dto.CommentBackDTO;
 import com.yuming.blog.dto.CommentDTO;
 import com.yuming.blog.dto.PageDTO;
 import com.yuming.blog.dto.ReplyDTO;
-import org.springframework.amqp.core.Message;
-import org.springframework.amqp.core.MessageProperties;
-import org.springframework.amqp.rabbit.core.RabbitTemplate;
+import javax.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.scheduling.annotation.Async;
@@ -48,9 +46,11 @@ public class CommentServiceImpl extends ServiceImpl<CommentDao, Comment> impleme
     @Autowired
     private UserInfoDao userInfoDao;
     @Autowired
-    private RabbitTemplate rabbitTemplate;
+    private KafkaProducer kafkaProducer;
     @Autowired
     private RedisLockUtils redisLockUtils;
+    @Autowired
+    private HttpServletRequest request;
 
     @Override
     public PageDTO<CommentDTO> listComments(Integer articleId, Long current) {
@@ -58,8 +58,8 @@ public class CommentServiceImpl extends ServiceImpl<CommentDao, Comment> impleme
         // 这是一级评论的回复量。子评论的回复量查询在下面
         Integer commentCount = commentDao.selectCount(new LambdaQueryWrapper<Comment>()
                 .eq(Objects.nonNull(articleId), Comment::getArticleId, articleId)
-                .isNull(Objects.isNull(articleId), Comment::getArticleId) //articleId为null时，评论对应的ArticleId也为null
-                .isNull(Comment::getParentId) //没有父标签
+                .isNull(Objects.isNull(articleId), Comment::getArticleId)
+                .isNull(Comment::getParentId)
                 .eq(Comment::getIsDelete, CommonConst.FALSE));
         if (commentCount == 0) {
             return new PageDTO<>();
@@ -75,7 +75,7 @@ public class CommentServiceImpl extends ServiceImpl<CommentDao, Comment> impleme
         List<Integer> commentIdList = new ArrayList<>();
         // 封装评论点赞量
         commentDTOList.forEach(item -> {
-            commentIdList.add(item.getId()); //提取id
+            commentIdList.add(item.getId());
             item.setLikeCount(Objects.requireNonNull(likeCountMap).get(item.getId().toString()));//根据id设置点赞量
         });
 
@@ -89,7 +89,7 @@ public class CommentServiceImpl extends ServiceImpl<CommentDao, Comment> impleme
         // 根据评论id分组回复数据
         Map<Integer, List<ReplyDTO>> replyMap = replyDTOList.stream().collect(Collectors.groupingBy(ReplyDTO::getParentId));
         // 根据评论id查询回复量
-        Map<Integer, Integer> replyCountMap = commentDao.listReplyCountByCommentId(commentIdList) //返回的list映射为map
+        Map<Integer, Integer> replyCountMap = commentDao.listReplyCountByCommentId(commentIdList)
                 .stream().collect(Collectors.toMap(ReplyCountDTO::getCommentId, ReplyCountDTO::getReplyCount));
 
         // 将分页回复数据和回复量封装进对应的评论
@@ -119,7 +119,7 @@ public class CommentServiceImpl extends ServiceImpl<CommentDao, Comment> impleme
         // 过滤html标签
         commentVO.setCommentContent(HTMLUtil.deleteCommentTag(commentVO.getCommentContent()));
         Comment comment = Comment.builder()
-                .userId(UserUtil.getLoginUser().getUserInfoId())
+                .userId(UserUtil.getLoginUser(request).getUserInfoId())
                 .replyId(commentVO.getReplyId())
                 .articleId(commentVO.getArticleId())
                 .commentContent(commentVO.getCommentContent())
@@ -136,25 +136,24 @@ public class CommentServiceImpl extends ServiceImpl<CommentDao, Comment> impleme
      *
      * @param commentVO 评论信息
      */
-    @Async //异步方法
+    @Async
     public void notice(CommentVO commentVO) {
         // 判断是回复用户还是评论作者
         Integer userId = Objects.nonNull(commentVO.getReplyId()) ? commentVO.getReplyId() : CommonConst.BLOGGER_ID;
         // 查询邮箱号
         String email = userInfoDao.selectById(userId).getEmail();
-        if (StringUtils.isNotBlank(email)) {  //有邮箱才发邮件通知
+        //有邮箱才发邮件通知
+        if (StringUtils.isNotBlank(email)) {
             // 判断页面路径
             String url = Objects.nonNull(commentVO.getArticleId()) ? CommonConst.URL + CommonConst.ARTICLE_PATH + commentVO.getArticleId() : CommonConst.URL + CommonConst.LINK_PATH;
             // 发送消息
             EmailDTO emailDTO = EmailDTO.builder()
                     .email(email)
                     .subject("评论提醒")
-                    .content("您收到了一条新的回复，请前往" + url + "\n页面查看")
+                    .content("您收到了一条新的回复："+ commentVO.getCommentContent() +"\n具体请前往" + url + "\n页面查看")
                     .build();
             // 利用消息队列发送邮件
-            // 发送消息指定一个交换机，交换机能把消息转存到对应的队列。扇形交换机无所谓routingKey，最后写上要发送的消息
-            rabbitTemplate.convertAndSend(
-                MQPrefixConst.EMAIL_EXCHANGE,  "*",new Message(JSON.toJSONBytes(emailDTO), new MessageProperties()));
+            kafkaProducer.sendBlogEmail(emailDTO);
         }
     }
 
@@ -169,7 +168,7 @@ public class CommentServiceImpl extends ServiceImpl<CommentDao, Comment> impleme
         if (getLock) {
             // 查询当前用户点赞过的评论id集合
             HashSet<Integer> commentLikeSet = (HashSet<Integer>) redisTemplate.boundHashOps(
-                RedisPrefixConst.COMMENT_USER_LIKE).get(UserUtil.getLoginUser().getUserInfoId().toString());
+                RedisPrefixConst.COMMENT_USER_LIKE).get(UserUtil.getLoginUser(request).getUserInfoId().toString());
             // 第一次点赞则创建
             if (CollectionUtils.isEmpty(commentLikeSet)) {
                 commentLikeSet = new HashSet<>();
@@ -187,7 +186,7 @@ public class CommentServiceImpl extends ServiceImpl<CommentDao, Comment> impleme
                 redisTemplate.boundHashOps(RedisPrefixConst.COMMENT_LIKE_COUNT).increment(commentId.toString(), 1);
             }
             // 保存点赞记录
-            redisTemplate.boundHashOps(RedisPrefixConst.COMMENT_USER_LIKE).put(UserUtil.getLoginUser().getUserInfoId().toString(), commentLikeSet);
+            redisTemplate.boundHashOps(RedisPrefixConst.COMMENT_USER_LIKE).put(UserUtil.getLoginUser(request).getUserInfoId().toString(), commentLikeSet);
             // 释放锁
             redisLockUtils.releaseLock(
                 RedisPrefixConst.COMMENT_USER_LIKE+ RedisPrefixConst.COMMENT_LIKE_COUNT+ RedisPrefixConst.LOCK, value);

@@ -3,27 +3,35 @@ package com.yuming.blog.utils;
 import com.yuming.blog.dto.UserInfoDTO;
 import com.yuming.blog.entity.UserAuth;
 import com.yuming.blog.entity.UserInfo;
+import com.yuming.blog.exception.UnLoginException;
 import eu.bitwalker.useragentutils.UserAgent;
-import org.springframework.security.core.context.SecurityContextHolder;
 
 import javax.servlet.http.HttpServletRequest;
 import java.util.Date;
 import java.util.List;
 import java.util.Set;
+import org.springframework.stereotype.Component;
 
 /**
  * 用户工具类
  *
  */
+@Component
 public class UserUtil {
+
+
 
     /**
      * 获取当前登录用户
-     *
+     * 每一个登录用户都有一个session
      * @return 用户登录信息
      */
-    public static UserInfoDTO getLoginUser() {
-        return (UserInfoDTO) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+    public static UserInfoDTO getLoginUser(HttpServletRequest request) {
+        UserInfoDTO userInfoDTO = (UserInfoDTO) request.getSession().getAttribute("userInfoDTO");
+        if (userInfoDTO == null) {
+            throw new UnLoginException("请先登录！");
+        }
+        return userInfoDTO;
     }
 
     /**

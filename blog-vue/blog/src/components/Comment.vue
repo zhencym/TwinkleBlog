@@ -257,6 +257,10 @@ export default {
           if (Math.ceil(item.replyCount / 5) > 1) {
             this.$refs.paging[index].style.display = "flex";
           }
+          // 提示
+          if (!data.flag) {
+            this.$toast({ type: "error", message: data.message });
+          }
         });
     },
     changeReplyCurrent(current, index, commentId) {
@@ -267,6 +271,10 @@ export default {
         })
         .then(({ data }) => {
           this.commentList[index].replyDTOList = data.data;
+          // 用户提示
+          if (!data.flag) {
+            this.$toast({ type: "error", message: data.message });
+          }
         });
     },
     listComments() {
@@ -280,6 +288,10 @@ export default {
         })
         .then(({ data }) => {
           this.commentList.push(...data.data.recordList);
+          // 用户提示
+          if (!data.flag) {
+            this.$toast({ type: "error", message: data.message });
+          }
         });
     },
     insertComment() {
@@ -317,6 +329,10 @@ export default {
           this.$toast({ type: "success", message: data.message });
         } else {
           this.$toast({ type: "error", message: data.message });
+          if (data.code === 40001) {
+            //开启登录框
+            this.$store.state.loginFlag = true;
+          }
         }
       });
     },
@@ -338,6 +354,13 @@ export default {
             this.$set(comment, "likeCount", comment.likeCount + 1);
           }
           this.$store.commit("commentLike", comment.id);
+        }  else {
+          this.$toast({ type: "error", message: "请求失败！" });
+          // 根据返回值判断登录并打开登录页面
+          if (data.code === 40001) {
+            //开启登录框
+            this.$store.state.loginFlag = true;
+          }
         }
       });
     },
@@ -357,6 +380,11 @@ export default {
           this.$refs.check[index].style.display = "none";
           this.$refs.reply[index].$el.style.display = "none";
           this.commentList[index].replyDTOList = data.data;
+
+          // 用户提示
+          if (!data.flag) {
+            this.$toast({ type: "error", message: data.message });
+          }
         });
     }
   },

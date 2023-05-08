@@ -81,6 +81,10 @@ export default {
         })
         .then(({ data }) => {
           this.articleList = data.data;
+          // 这里只显示失败
+          if (!data.flag) {
+            this.$toast({ type: "error", message: data.message });
+          }
         });
     }
   }

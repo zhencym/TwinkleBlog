@@ -267,6 +267,7 @@ export default {
     Comment
   },
   created() {
+
     this.getArticle();
     this.listComment();
     this.listNewestArticles();
@@ -278,8 +279,7 @@ export default {
   data: function() {
     return {
       config: {
-        //"weibo",
-        sites: ["qzone", "wechat",  "qq"]
+        sites: ["qqzone", "wechat",  "qq"]
       },
       imgList: [],
       article: {
@@ -307,6 +307,7 @@ export default {
       const that = this;
       //查询文章
       this.axios.get("/api" + this.$route.path).then(({ data }) => {
+
         document.title = data.data.articleTitle;
         //将markdown转换为Html
         this.markdownToHtml(data.data);
@@ -349,6 +350,10 @@ export default {
             });
           }
         });
+        // 用户提示
+        if (!data.flag) {
+          this.$toast({ type: "error", message: data.message });
+        }
       });
     },
     listComment() {
@@ -362,11 +367,19 @@ export default {
         .then(({ data }) => {
           this.commentList = data.data.recordList;
           this.count = data.data.count;
+          // 用户提示
+          if (!data.flag) {
+            this.$toast({ type: "error", message: data.message });
+          }
         });
     },
     listNewestArticles() {
       this.axios.get("/api/articles/newest").then(({ data }) => {
         this.articleLatestList = data.data;
+        // 用户提示
+        if (!data.flag){
+          this.$toast({ type: "error", message: data.message });
+        }
       });
     },
     like() {
@@ -387,6 +400,13 @@ export default {
             this.$set(this.article, "likeCount", this.article.likeCount + 1);
           }
           this.$store.commit("articleLike", this.article.id);
+        } else {// 失败提示
+          this.$toast({ type: "error", message: data.message });
+          // 根据返回值判断登录并打开登录页面
+          if (data.code === 40001) {
+            //开启登录框
+            this.$store.state.loginFlag = true;
+          }
         }
       });
     },

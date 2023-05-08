@@ -264,9 +264,14 @@ export default {
           }
         })
         .then(({ data }) => {
-          this.linkList = data.data.recordList;
-          this.count = data.data.count;
-          this.loading = false;
+          if (data.flag) {
+            this.linkList = data.data.recordList;
+            this.count = data.data.count;
+            this.loading = false;
+          } else {
+            this.$notify.error({title: "失败", message: data.message});
+          }
+
         });
     }
   }

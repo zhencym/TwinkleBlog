@@ -109,9 +109,14 @@ export default {
           }
         })
         .then(({ data }) => {
-          this.userList = data.data.recordList;
-          this.count = data.data.count;
-          this.loading = false;
+          if (data.flag) {
+            this.userList = data.data.recordList;
+            this.count = data.data.count;
+            this.loading = false;
+          } else {
+            this.$notify.error({title: "失败", message: data.message});
+          }
+
         });
     },
     check(optLog) {

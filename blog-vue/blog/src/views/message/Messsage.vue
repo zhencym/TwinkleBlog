@@ -74,12 +74,22 @@ export default {
       };
       this.barrageList.push(message);
       this.messageContent = "";
-      this.axios.post("/api/messages", message);
+      this.axios.post("/api/messages", message).then(({ data }) => {
+        // 用户提示
+        if (data.flag) {
+          // 其他业务
+          this.$toast({ type: "success", message: data.message });
+        } else {
+          this.$toast({ type: "error", message: data.message });
+        }
+      });
     },
     listMessage() {
       this.axios.get("/api/messages").then(({ data }) => {
         if (data.flag) {
           this.barrageList = data.data;
+        } else {
+          this.$toast({ type: "error", message: data.message });
         }
       });
     }

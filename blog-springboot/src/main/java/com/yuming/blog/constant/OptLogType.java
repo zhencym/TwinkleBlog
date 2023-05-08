@@ -1,16 +1,13 @@
 package com.yuming.blog.constant;
 
-import lombok.Data;
 import lombok.Getter;
 
 /**
  * @Author: zhencym
  * @DATE: 2023/5/6
  */
-public class Constants {
-
   @Getter
-  public static final class OptLogType {
+  public final class OptLogType {
     /**
      * 新增
      */
@@ -28,5 +25,9 @@ public class Constants {
      */
     public static final String UPLOAD = "上传";
 
+    /**
+    * 查看
+    */
+    public static final String VIEW = "查看";
+
   }
-}

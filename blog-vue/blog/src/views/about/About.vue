@@ -35,6 +35,10 @@ export default {
         const MarkdownIt = require("markdown-it");
         const md = new MarkdownIt();
         this.aboutContent = md.render(data.data);
+        // 用户提示
+        if (!data.flag) {
+          this.$toast({ type: "error", message: data.message });
+        }
       });
     }
   }

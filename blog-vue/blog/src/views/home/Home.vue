@@ -209,6 +209,7 @@
 import EasyTyper from "easy-typer-js";
 export default {
   created() {
+
     this.init();
     this.getBlogInfo();
     this.timer = setInterval(this.runTime, 1000);

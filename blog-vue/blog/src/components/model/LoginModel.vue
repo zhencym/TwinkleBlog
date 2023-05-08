@@ -41,12 +41,6 @@
         </div>
         <div class="social-login-title">社交账号登录</div>
         <div class="social-login-wrapper">
-          <!-- 微博登录 暂时无用-->
-<!--          <a-->
-<!--              class="mr-3 iconfont iconweibo"-->
-<!--              style="color:#e05244"-->
-<!--              @click="weiboLogin"-->
-<!--          />-->
           <!-- qq登录 -->
           <a class="iconfont iconqq" style="color:#00AAEE" @click="qqLogin"/>
         </div>
@@ -101,30 +95,21 @@ export default {
         return false;
       }
       const that = this;
-      // eslint-disable-next-line no-undef
-      var captcha = new TencentCaptcha(
-          this.config.TENCENT_CAPTCHA,   //腾讯图形验证码
-          function (res) {
-            if (res.ret === 0) {
-              //发送登录请求
-              let param = new URLSearchParams();
-              param.append("username", that.username);
-              param.append("password", that.password);
-              that.axios.post("/api/login", param).then(({data}) => {
-                if (data.flag) {
-                  that.username = "";
-                  that.password = "";
-                  that.$store.commit("login", data.data);
-                  that.$store.commit("closeModel");
-                  that.$toast({type: "success", message: data.message});
-                } else {
-                  that.$toast({type: "error", message: data.message});
-                }
-              });
-            }
-          });
-      // 显示验证码
-      captcha.show();
+      // 普通登录，发送登录请求
+      let param = new URLSearchParams();
+      param.append("username", that.username);
+      param.append("password", that.password);
+      that.axios.post("/api/login", param).then(({data}) => {
+        if (data.flag) {
+          that.username = "";
+          that.password = "";
+          that.$store.commit("login", data.data);
+          that.$store.commit("closeModel");
+          that.$toast({type: "success", message: data.message});
+        } else {
+          that.$toast({type: "error", message: data.message});
+        }
+      });
     },
     qqLogin() {
       //保留当前路径
@@ -148,17 +133,6 @@ export default {
             "_self"
         );
       }
-    },
-    weiboLogin() {
-      //保留当前路径
-      this.$store.commit("saveLoginUrl", this.$route.path);
-      window.open(
-          "https://api.weibo.com/oauth2/authorize?client_id=" +
-          this.config.WEIBO_APP_ID +
-          "&response_type=code&redirect_uri=" +
-          this.config.WEIBO_REDIRECT_URI,
-          "_self"
-      );
     }
   }
 };

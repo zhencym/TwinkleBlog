@@ -58,6 +58,10 @@ export default {
         .then(({ data }) => {
           this.archiveList = data.data.recordList;
           this.count = data.data.count;
+          // 用户提示
+          if (!data.flag) {
+            this.$toast({ type: "error", message: data.message });
+          }
         });
     }
   },
@@ -70,6 +74,10 @@ export default {
         .then(({ data }) => {
           this.archiveList = data.data.recordList;
           this.count = data.data.count;
+          // 用户提示
+          if (!data.flag) {
+            this.$toast({ type: "error", message: data.message });
+          }
         });
     }
   }

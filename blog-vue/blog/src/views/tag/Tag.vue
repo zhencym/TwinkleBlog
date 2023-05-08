@@ -37,6 +37,10 @@ export default {
       this.axios.get("/api/tags").then(({ data }) => {
         this.tagList = data.data.recordList;
         this.count = data.data.count;
+        // 用户提示
+        if (!data.flag){
+          this.$toast({ type: "error", message: data.message });
+        }
       });
     }
   }

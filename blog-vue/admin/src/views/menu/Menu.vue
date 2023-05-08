@@ -205,8 +205,13 @@ export default {
   methods: {
     listMenus() {
       this.axios.get("/api/admin/menus").then(({ data }) => {
-        this.menuList = data.data;
-        this.loading = false;
+        if (data.flag) {
+          this.menuList = data.data;
+          this.loading = false;
+        } else {
+          this.$notify.error({title: "失败", message: data.message});
+        }
+
       });
     },
     openModel(menu) {

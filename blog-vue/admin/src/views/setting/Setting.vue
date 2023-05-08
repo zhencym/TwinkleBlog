@@ -114,7 +114,11 @@ export default {
     handleClick(tab) {
       if (tab.index == 2 && this.notice == "") {
         this.axios.get("/api/admin/notice").then(({ data }) => {
-          this.notice = data.data;
+          if (data.flag) {
+            this.notice = data.data;
+          } else {
+            this.$notify.error({title: "失败", message: data.message});
+          }
         });
       }
     },

@@ -24,8 +24,7 @@
     <EmailModel></EmailModel>
     <!-- 聊天室 -->
         <ChatRoom></ChatRoom>
-    <!-- 音乐播放器 暂时不用-->
-<!--    <Player></Player>-->
+
 
 
   </v-app>
@@ -41,7 +40,6 @@ import LoginModel from "./components/model/LoginModel";
 import RegisterModel from "./components/model/RegisterModel";
 import ForgetModel from "./components/model/ForgetModel";
 import EmailModel from "./components/model/EmailModel";
-// import Player from "zw-player";
 import ChatRoom from "./components/ChatRoom";
 export default {
   components: {
@@ -55,8 +53,6 @@ export default {
     ForgetModel,
     EmailModel,
     ChatRoom,
-    // Player,
-
   }
 };
 </script>

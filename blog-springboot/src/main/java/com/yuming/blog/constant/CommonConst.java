@@ -41,7 +41,7 @@ public class CommonConst {
     /**
      * 网站域名
      */
-    public static final String URL = "https://localhost:8088/";
+    public static final String URL = "https://localhost:8666/";
 
     /**
      * 文章页面路径

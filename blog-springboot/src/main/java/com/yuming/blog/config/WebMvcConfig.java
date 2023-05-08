@@ -1,8 +1,11 @@
 package com.yuming.blog.config;
 
+import com.yuming.blog.handler.Interceptors.AccessInterceptor;
+import com.yuming.blog.handler.Interceptors.LoginInterceptor;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.servlet.config.annotation.CorsRegistry;
-import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry;
+import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 /**
@@ -12,18 +15,28 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 @Configuration
 public class WebMvcConfig implements WebMvcConfigurer {
 
+
+    @Autowired
+    private LoginInterceptor loginInterceptor;
+
+    @Autowired
+    private AccessInterceptor accessInterceptor;
+
     /**
-     * 静态资源处理
-     * 自定义静态资源映射目录，当访问swagger-ui.html资源时，
-     * 资源处理器告诉spring从classpath:/META-INF/resources/找到指定资源返回
-     * addResoureHandler：指的是对外暴露的访问路径
-     * addResourceLocations：指的是内部文件放置的目录
+     * 添加拦截器,拦截顺序按照注册顺序
+     * 路径拦截
+     * 权限拦截
      * @param registry
      */
     @Override
-    public void addResourceHandlers(ResourceHandlerRegistry registry) {
-        registry.addResourceHandler("/swagger-ui.html") //访问路径
-                .addResourceLocations("classpath:/META-INF/resources/"); //本地路径
+    public void addInterceptors(InterceptorRegistry registry) {
+        // 添加一个拦截器，拦截指定路径
+        registry.addInterceptor(loginInterceptor)
+            .addPathPatterns("/admin/*");
+        // 只管后台的访问权限
+        registry.addInterceptor(accessInterceptor)
+            .addPathPatterns("/admin/*")
+            .excludePathPatterns("/admin/user/menus");
     }
 
     /**
@@ -32,16 +45,22 @@ public class WebMvcConfig implements WebMvcConfigurer {
      */
     @Override
     public void addCorsMappings(CorsRegistry registry) {
-        registry.addMapping("/**") // 允许跨域访问的路径
-                .allowCredentials(true)  // 是否发送cookie
-                .allowedHeaders("*") // 允许头部设置
-                .allowedOriginPatterns("*") // 允许跨域访问的源
-                .allowedMethods("*"); // 允许请求方法
+        registry.addMapping("/**")
+                .allowCredentials(true)
+                .maxAge(3600)
+                .allowedHeaders("*")
+                .allowedOriginPatterns("*")
+                .allowedMethods("GET", "POST", "PUT", "DELETE", "HEAD", "OPTIONS");
+
         // 映射路径为/**，即所有路径都映射到这个跨域处理器上
         // 允许客户端发送cookie
         // 允许所有请求头
         // 允许所有源
         // 允许所有http方法
     }
+
+
+
+
 
 }

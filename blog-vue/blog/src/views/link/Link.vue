@@ -7,7 +7,7 @@
     <!-- 链接列表 -->
     <v-card class="blog-container">
       <div class="link-title mb-1">
-        <v-icon color="blue">mdi-link-variant</v-icon> 大佬链接
+        <v-icon color="blue">mdi-link-variant</v-icon> 博客链接
       </div>
       <v-row class="link-container">
         <v-col
@@ -33,9 +33,9 @@
         <v-icon color="blue">mdi-dots-horizontal-circle</v-icon> 添加友链
       </div>
       <blockquote>
-        <div>名称：风丶宇的个人博客</div>
-        <div>简介：成事在人 谋事在天</div>
-        <div>头像：https://tupian.qqw21.com/article/UploadPic/2020-5/20205622141239876.jpg</div>
+        <div>名称：Twinkle个人博客</div>
+        <div>简介：古道 西风 瘦马</div>
+        <div>头像：https://cymoss.oss-cn-guangzhou.aliyuncs.com/image/jay.jpg</div>
       </blockquote>
       <div class="mt-5 mb-5">
         需要交换友链的可在下方留言💖
@@ -74,6 +74,10 @@ export default {
     listFriendLink() {
       this.axios.get("/api/links").then(({ data }) => {
         this.friendLinkList = data.data;
+        // 用户提示
+        if (!data.flag) {
+          this.$toast({ type: "error", message: data.message });
+        }
       });
     },
     listComments() {
@@ -84,6 +88,11 @@ export default {
         .then(({ data }) => {
           this.commentList = data.data.recordList;
           this.count = data.data.count;
+
+          // 用户提示
+          if (!data.flag) {
+            this.$toast({ type: "error", message: data.message });
+          }
         });
     }
   }

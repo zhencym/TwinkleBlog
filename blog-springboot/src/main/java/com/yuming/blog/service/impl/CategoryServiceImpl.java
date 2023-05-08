@@ -74,7 +74,7 @@ public class CategoryServiceImpl extends ServiceImpl<CategoryDao, Category> impl
                 .categoryName(categoryVO.getCategoryName())
                 .createTime(Objects.isNull(categoryVO.getId()) ? new Date() : null)
                 .build();
-        this.saveOrUpdate(category); //保存或更新，mp方法，真快
+        this.saveOrUpdate(category);
 
     }
 

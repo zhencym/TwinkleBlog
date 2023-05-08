@@ -3,7 +3,9 @@ package com.yuming.blog.service;
 import com.yuming.blog.dto.BlogBackInfoDTO;
 import com.yuming.blog.dto.BlogHomeInfoDTO;
 
-
+/**
+ * 管理员端，没必要缓存，访问量不大
+ */
 
 public interface BlogInfoService  {
 

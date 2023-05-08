@@ -1,7 +1,10 @@
-package com.million.project.context.inteceptor;
+package com.yuming.blog.handler.Interceptors;
 
+import com.yuming.blog.exception.UnLoginException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.HandlerInterceptor;
 import org.springframework.web.servlet.ModelAndView;
@@ -12,11 +15,15 @@ import org.springframework.web.servlet.ModelAndView;
 @Component
 public class LoginInterceptor implements HandlerInterceptor {
 
+    Logger logger = LoggerFactory.getLogger(LoginInterceptor.class);
+
     @Override
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object o) throws Exception {
-        if (null == request.getSession().getAttribute("username")) {
-            response.sendRedirect(request.getContextPath() + "/login");
-            return false;
+
+        logger.info("登陆检查");
+        // System.err.println("登陆检查");
+        if (null == request.getSession().getAttribute("userInfoDTO")) {
+            throw new UnLoginException("请先登录");
         } else {
             return true;
         }
@@ -30,4 +37,5 @@ public class LoginInterceptor implements HandlerInterceptor {
     public void afterCompletion(HttpServletRequest httpServletRequest, HttpServletResponse httpServletResponse, Object o, Exception e) throws Exception {
 
     }
+
 }

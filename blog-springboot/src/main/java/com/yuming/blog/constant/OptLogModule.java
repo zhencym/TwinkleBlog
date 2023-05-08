@@ -7,7 +7,7 @@ import lombok.Getter;
  * @DATE: 2023/5/6
  */
 @Getter
-public final class OptModule {
+public final class OptLogModule {
 
   public static final String CLASSFY = "分类模块";
 
@@ -34,4 +34,6 @@ public final class OptModule {
   public static final String COMMENT = "评论模块";
 
   public static final String RESOURCE = "资源模块";
+
+  public static final String OTHER = "其他模块";
 }

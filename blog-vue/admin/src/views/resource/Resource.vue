@@ -158,8 +158,13 @@ export default {
     },
     listResources() {
       this.axios.get("/api/admin/resources").then(({ data }) => {
-        this.resourceList = data.data;
-        this.loading = false;
+        if (data.flag) {
+          this.resourceList = data.data;
+          this.loading = false;
+        } else {
+          this.$notify.error({title: "失败", message: data.message});
+        }
+
       });
     },
     changeResource(resource) {

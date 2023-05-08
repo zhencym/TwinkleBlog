@@ -10,6 +10,7 @@ import com.yuming.blog.dao.UserInfoDao;
 import com.yuming.blog.entity.UserRole;
 import com.yuming.blog.enums.FilePathEnum;
 import com.yuming.blog.exception.ServeException;
+import com.yuming.blog.login.SessionManager;
 import com.yuming.blog.service.UserInfoService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.yuming.blog.service.UserRoleService;
@@ -21,10 +22,9 @@ import com.yuming.blog.vo.EmailVO;
 import com.yuming.blog.vo.UserInfoVO;
 import com.yuming.blog.vo.UserRoleVO;
 import com.yuming.blog.constant.RedisPrefixConst;
+import javax.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.RedisTemplate;
-import org.springframework.security.core.session.SessionInformation;
-import org.springframework.security.core.session.SessionRegistry;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -44,9 +44,11 @@ public class UserInfoServiceImpl extends ServiceImpl<UserInfoDao, UserInfo> impl
     @Autowired
     private UserRoleService userRoleService;
     @Autowired
-    private SessionRegistry sessionRegistry;
+    private SessionManager sessionManager;
     @Autowired
     private RedisTemplate redisTemplate;
+    @Autowired
+    private HttpServletRequest request;
 
 
     @Transactional(rollbackFor = Exception.class)
@@ -54,7 +56,7 @@ public class UserInfoServiceImpl extends ServiceImpl<UserInfoDao, UserInfo> impl
     public void updateUserInfo(UserInfoVO userInfoVO) {
         // 封装用户信息
         UserInfo userInfo = UserInfo.builder()
-                .id(UserUtil.getLoginUser().getUserInfoId())
+                .id(UserUtil.getLoginUser(request).getUserInfoId())
                 .nickname(userInfoVO.getNickname())
                 .intro(userInfoVO.getIntro())
                 .webSite(userInfoVO.getWebSite())
@@ -70,7 +72,7 @@ public class UserInfoServiceImpl extends ServiceImpl<UserInfoDao, UserInfo> impl
         String avatar = OSSUtil.upload(file, FilePathEnum.AVATAR.getPath());
         // 更新用户信息
         UserInfo userInfo = UserInfo.builder()
-                .id(UserUtil.getLoginUser().getUserInfoId())
+                .id(UserUtil.getLoginUser(request).getUserInfoId())
                 .avatar(avatar)
                 .build();
         userInfoDao.updateById(userInfo);
@@ -84,7 +86,7 @@ public class UserInfoServiceImpl extends ServiceImpl<UserInfoDao, UserInfo> impl
             throw new ServeException("验证码错误！");
         }
         UserInfo userInfo = UserInfo.builder()
-                .id(UserUtil.getLoginUser().getUserInfoId())
+                .id(UserUtil.getLoginUser(request).getUserInfoId())
                 .email(emailVO.getEmail())
                 .build();
         userInfoDao.updateById(userInfo);
@@ -125,12 +127,24 @@ public class UserInfoServiceImpl extends ServiceImpl<UserInfoDao, UserInfo> impl
 
     @Override
     public PageDTO<UserOnlineDTO> listOnlineUsers(ConditionVO conditionVO) {
-        // 获取security在线session
-        List<UserOnlineDTO> userOnlineDTOList = sessionRegistry.getAllPrincipals().stream()
-                .filter(item -> sessionRegistry.getAllSessions(item, false).size() > 0)
-                .map(item -> JSON.parseObject(JSON.toJSONString(item), UserOnlineDTO.class))
-                .sorted(Comparator.comparing(UserOnlineDTO::getLastLoginTime).reversed())
-                .collect(Collectors.toList());
+        // 获取session中所有用户信息
+        List<UserInfoDTO> userInfoDTOList = sessionManager.getUserInfoDTOList();
+        // dto转换
+        List<UserOnlineDTO> userOnlineDTOList = userInfoDTOList.stream().map(
+            item -> UserOnlineDTO.builder()
+                .userInfoId(item.getUserInfoId())
+                .nickname(item.getNickname())
+                .avatar(item.getAvatar())
+                .ipAddr(item.getIpAddr())
+                .ipSource(item.getIpSource())
+                .browser(item.getBrowser())
+                .os(item.getOs())
+                .lastLoginTime(item.getLastLoginTime())
+                .build())
+            // 按最后一次上登录时间逆序排序
+            .sorted(Comparator.comparing(UserOnlineDTO::getLastLoginTime).reversed())
+            .collect(Collectors.toList());
+
         // 执行分页
         int current = (conditionVO.getCurrent() - 1) * conditionVO.getSize();
         int size = userOnlineDTOList.size() > conditionVO.getSize() ? current + conditionVO.getSize() : userOnlineDTOList.size();
@@ -138,21 +152,9 @@ public class UserInfoServiceImpl extends ServiceImpl<UserInfoDao, UserInfo> impl
         return new PageDTO<>(userOnlineList, userOnlineDTOList.size());
     }
 
-    //强制用户下线
     @Override
     public void removeOnlineUser(Integer userInfoId) {
-        // 获取用户session
-        List<Object> userInfoList = sessionRegistry.getAllPrincipals().stream().filter(item -> {
-            //对于遍历每个注册信息，过滤得到注册信息等于userInfoId的用户
-            UserInfoDTO userInfoDTO = (UserInfoDTO) item;
-            return userInfoDTO.getUserInfoId().equals(userInfoId);
-        }).collect(Collectors.toList());
-        List<SessionInformation> allSessions = new ArrayList<>();
-        //对于这个这个用户信息，把名为item的session取出来加入到allSessions
-        userInfoList.forEach(item -> allSessions.addAll(sessionRegistry.getAllSessions(item, false)));
-        // 注销session
-        // 终于找到这个用户的session，并expire踢出
-        allSessions.forEach(SessionInformation::expireNow);
+        sessionManager.expireSession(userInfoId);
     }
 
 }

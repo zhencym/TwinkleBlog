@@ -319,6 +319,9 @@ export default {
           this.commentList = data.data.recordList;
           this.count = data.data.count;
           this.loading = false;
+          if (data.code === 40003) {
+            this.$notify.error({title: "失败", message: data.message});
+          }
         });
     }
   },

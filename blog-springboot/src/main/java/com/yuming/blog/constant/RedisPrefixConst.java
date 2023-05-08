@@ -1,5 +1,7 @@
 package com.yuming.blog.constant;
 
+import com.yuming.blog.dto.ArticleOptionDTO;
+
 /**
  * redis常量
  *
@@ -15,6 +17,26 @@ public class RedisPrefixConst {
      * 验证码过期时间
      */
     public static final long CODE_EXPIRE_TIME = 15 * 60 * 1000; // 15分钟
+
+    /**
+     * 缓存时长10min
+     */
+    public static final long MINUTE_10 = 10;
+
+    /**
+     * 缓存时长1小时
+     */
+    public static final long HOURS_1 = 1;
+
+    /**
+     * 缓存时长2小时
+     */
+    public static final long HOURS_2 = 2;
+
+    /**
+     * 用户在线时间
+     */
+    public static final long LOGIN_EXPIRE_TIME = 6; // 6小时
 
     /**
      * 验证码
@@ -66,5 +88,25 @@ public class RedisPrefixConst {
      */
     public static final String IP_SET = "ip_set";
 
+    /**
+     * 用户登录记录
+     */
+    public static final String LOGIN = "login_";
+
+    /**
+     * 首页文章列表缓存
+     */
+    public static final String LITST_ArticleHomeDTO = "list_articleHomeDTO_";
+
+
+    /**
+     * 文章归档缓存
+     */
+    public static final String ArchiveDTO = "ArchiveDTO_";
+
+    /**
+     * 文章标签缓存
+     */
+    public static final String ArticleOptionDTO = "ArticleOptionDTO_";
 
 }

@@ -51,7 +51,7 @@ public interface ArticleDao extends BaseMapper<Article> {
     /**
      * 查询后台文章列表，
      * 这是后台文章列表整个页面的功能的一条sql实现。实现删除、草稿、标题模糊查询、返回数目的查询
-     * 传入参数实际上是，是否删除、草稿、查询关键字、当前页和返回size
+     * 传入参数为，是否删除、草稿、查询关键字、当前页和返回size
      *
      * @param condition 条件
      * @return 后台文章集合
@@ -60,7 +60,7 @@ public interface ArticleDao extends BaseMapper<Article> {
 
     /**
      * 查询后台文章总量
-     * 统计删除、草稿、标题关键字文章的总数量，参数就是删除、草稿、标题关键字
+     * 统计删除、草稿、标题关键字文章的总数量，参数为删除、草稿、标题关键字
      *
      * @param condition 条件
      * @return 文章总量

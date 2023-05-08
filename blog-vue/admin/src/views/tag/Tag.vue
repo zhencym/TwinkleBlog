@@ -195,10 +195,15 @@ export default {
           }
         })
         .then(({ data }) => {
+          if (data.flag) {
           this.tagList = data.data.recordList;
           this.count = data.data.count;
           this.loading = false;
+          } else {
+            this.$notify.error({title: "失败", message: data.message});
+          }
         });
+
     },
     openModel(tag) {
       if (tag != null) {

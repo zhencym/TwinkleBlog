@@ -17,9 +17,13 @@ public class RedisLockUtils {
     @Autowired
     private RedisTemplate redisTemplate;
 
-    //分布式锁过期时间 10s  可以根据业务自己调节
+  /**
+   * 分布式锁过期时间 10s  可以根据业务自己调节
+   */
     private static final Long LOCK_REDIS_TIMEOUT = 10L;
-    //分布式锁休眠 至 再次尝试获取 的等待时间 ms 可以根据业务自己调节
+  /**
+   * 分布式锁休眠 至 再次尝试获取 的等待时间 ms 可以根据业务自己调节
+   */
     public static final Long LOCK_REDIS_WAIT = 500L;
 
 

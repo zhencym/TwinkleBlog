@@ -10,9 +10,10 @@ module.exports = {
     proxy: {
       "/api": {
         //target: "http://localhost:8666",
+        target: "http://localhost:8777",
         //target: "http://43.139.142.79:8088",
         //target: "http://192.168.95.137:8666",
-        target: "http://43.139.142.79:8777",
+        //target: "http://43.139.142.79:8777",
         changeOrigin: true,
         pathRewrite: {
           "^/api": "" //把以/api开头的请求，除去/api，再拼接到target的请求地址，才发送请求

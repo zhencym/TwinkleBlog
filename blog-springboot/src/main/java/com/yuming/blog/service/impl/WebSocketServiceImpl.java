@@ -134,8 +134,9 @@ public class WebSocketServiceImpl {
      * @return 加载历史聊天记录
      */
     private ChatRecordDTO listChartRecords(EndpointConfig endpointConfig) {
+        //加载24小时前的聊天记录
         List<ChatRecord> chatRecordList = chatRecordDao.selectList(new LambdaQueryWrapper<ChatRecord>()
-                .ge(ChatRecord::getCreateTime, DateUtil.getBeforeHourTime(24))); //加载24小时前的聊天记录
+                .ge(ChatRecord::getCreateTime, DateUtil.getBeforeHourTime(24)));
         String ipAddr = endpointConfig.getUserProperties().get(ChatConfigurator.HEADER_NAME).toString();
         return ChatRecordDTO.builder()
                 .chatRecordList(chatRecordList)
@@ -154,8 +155,9 @@ public class WebSocketServiceImpl {
                 .type(ONLINE_COUNT.getType())
                 .data(webSocketSet.size())
                 .build();
+        //给每个客户端发送在线人数消息
         for (WebSocketServiceImpl webSocketService : webSocketSet) {
-            synchronized (webSocketService.session) { //给每个客户端发送在线人数消息
+            synchronized (webSocketService.session) {
                 webSocketService.session.getBasicRemote().sendText(JSON.toJSONString(messageDTO));
             }
         }
@@ -170,7 +172,7 @@ public class WebSocketServiceImpl {
     @OnMessage
     public void onMessage(String message, Session session) throws IOException {
         WebsocketMessageDTO messageDTO = JSON.parseObject(message, WebsocketMessageDTO.class);
-        switch (Objects.requireNonNull(getChatType(messageDTO.getType()))) { //Type这个数据哪来的
+        switch (Objects.requireNonNull(getChatType(messageDTO.getType()))) {
             case SEND_MESSAGE:
                 // 发送消息
                 ChatRecord chatRecord = JSON.parseObject(JSON.toJSONString(messageDTO.getData()), ChatRecord.class);

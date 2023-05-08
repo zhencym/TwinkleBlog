@@ -19,6 +19,8 @@ import com.yuming.blog.entity.UserRole;
 import com.yuming.blog.enums.LoginTypeEnum;
 import com.yuming.blog.enums.RoleEnum;
 import com.yuming.blog.exception.ServeException;
+import com.yuming.blog.handler.KafkaProducer;
+import com.yuming.blog.login.SessionManager;
 import com.yuming.blog.service.UserAuthService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.yuming.blog.utils.IpUtil;
@@ -26,18 +28,14 @@ import com.yuming.blog.utils.UserUtil;
 import com.yuming.blog.vo.ConditionVO;
 import com.yuming.blog.vo.PasswordVO;
 import com.yuming.blog.vo.UserVO;
-import com.yuming.blog.constant.MQPrefixConst;
 import com.yuming.blog.constant.RedisPrefixConst;
-import org.springframework.amqp.core.Message;
-import org.springframework.amqp.core.MessageProperties;
-import org.springframework.amqp.rabbit.core.RabbitTemplate;
+import javax.servlet.http.HttpSession;
+import org.springframework.scheduling.annotation.Async;
+import org.springframework.util.DigestUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.mail.javamail.JavaMailSender;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.crypto.bcrypt.BCrypt;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.client.RestTemplate;
@@ -47,6 +45,7 @@ import javax.servlet.http.HttpServletRequest;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 
+import static com.yuming.blog.constant.RedisPrefixConst.LOGIN_EXPIRE_TIME;
 import static com.yuming.blog.utils.CommonUtil.checkEmail;
 import static com.yuming.blog.utils.UserUtil.convertLoginUser;
 
@@ -68,10 +67,13 @@ public class UserAuthServiceImpl extends ServiceImpl<UserAuthDao, UserAuth> impl
     private UserInfoDao userInfoDao;
     @Autowired
     private RestTemplate restTemplate;
-    @Resource
-    private HttpServletRequest request;
     @Autowired
-    private RabbitTemplate rabbitTemplate;
+    private KafkaProducer kafkaProducer;
+    @Autowired
+    private SessionManager sessionManager;
+
+    @Autowired
+    private HttpServletRequest request;
 
     /**
      * 邮箱号
@@ -91,41 +93,6 @@ public class UserAuthServiceImpl extends ServiceImpl<UserAuthDao, UserAuth> impl
     @Value("${qq.user-info-url}")
     private String QQ_USER_INFO_URL;
 
-//    /**
-//     * 微博appId
-//     */
-//    @Value("${weibo.app-id}")
-//    private String WEIBO_APP_ID;
-//
-//    /**
-//     * 微博appSecret
-//     */
-//    @Value("${weibo.app-secret}")
-//    private String WEIBO_APP_SECRET;
-//
-//    /**
-//     * 微博授权方式
-//     */
-//    @Value("${weibo.grant-type}")
-//    private String WEIBO_GRANT_TYPE;
-//
-//    /**
-//     * 微博回调地址
-//     */
-//    @Value("${weibo.redirect-url}")
-//    private String WEIBO_REDIRECT_URI;
-//
-//    /**
-//     * 微博获取token和openId接口地址
-//     */
-//    @Value("${weibo.access-token-url}")
-//    private String WEIBO_ACCESS_TOKEN_URI;
-//
-//    /**
-//     * 微博获取用户信息接口地址
-//     */
-//    @Value("${weibo.user-info-url}")
-//    private String WEIBO_USER_INFO_URI;
 
     @Override
     public void sendCode(String username) {
@@ -146,8 +113,7 @@ public class UserAuthServiceImpl extends ServiceImpl<UserAuthDao, UserAuth> impl
                 .content("您的验证码为 " + code.toString() + " 有效期15分钟，请不要告诉他人哦！")
                 .build();
         // 发送邮件存到消息队列
-        rabbitTemplate.convertAndSend(
-            MQPrefixConst.EMAIL_EXCHANGE, "*", new Message(JSON.toJSONBytes(emailDTO), new MessageProperties()));
+        kafkaProducer.sendBlogEmail(emailDTO);
         // 将验证码存入redis，设置过期时间为15分钟
         redisTemplate.boundValueOps(RedisPrefixConst.CODE_KEY + username).set(code);
         redisTemplate.expire(RedisPrefixConst.CODE_KEY + username, RedisPrefixConst.CODE_EXPIRE_TIME, TimeUnit.MILLISECONDS);
@@ -176,12 +142,13 @@ public class UserAuthServiceImpl extends ServiceImpl<UserAuthDao, UserAuth> impl
                 .userInfoId(userInfo.getId())
                 .username(user.getUsername())
                  //使用security的方法加密密码
-                .password(BCrypt.hashpw(user.getPassword(), BCrypt.gensalt()))
+                .password(DigestUtils.md5DigestAsHex(user.getPassword().getBytes()))
                 .createTime(new Date())
                 .loginType(LoginTypeEnum.EMAIL.getType())
                 .build();
         userAuthDao.insert(userAuth);
     }
+
 
 
     @Transactional(rollbackFor = Exception.class)
@@ -193,7 +160,7 @@ public class UserAuthServiceImpl extends ServiceImpl<UserAuthDao, UserAuth> impl
         }
         // 根据用户名修改密码
         userAuthDao.update(new UserAuth(), new LambdaUpdateWrapper<UserAuth>()
-                .set(UserAuth::getPassword, BCrypt.hashpw(user.getPassword(), BCrypt.gensalt()))
+                .set(UserAuth::getPassword, DigestUtils.md5DigestAsHex(user.getPassword().getBytes()))
                 .eq(UserAuth::getUsername, user.getUsername()));
     }
 
@@ -202,12 +169,14 @@ public class UserAuthServiceImpl extends ServiceImpl<UserAuthDao, UserAuth> impl
     public void updateAdminPassword(PasswordVO passwordVO) {
         // 查询旧密码是否正确
         UserAuth user = userAuthDao.selectOne(new LambdaQueryWrapper<UserAuth>()
-                .eq(UserAuth::getId, UserUtil.getLoginUser().getId()));
+                .eq(UserAuth::getId, UserUtil.getLoginUser(request).getId()));
+        // 加密
+        String secret = DigestUtils.md5DigestAsHex(passwordVO.getOldPassword().getBytes());
         // 正确则修改密码，错误则提示不正确
-        if (Objects.nonNull(user) && BCrypt.checkpw(passwordVO.getOldPassword(), user.getPassword())) {
+        if (Objects.nonNull(user) && secret.equals(user.getPassword())) {
             UserAuth userAuth = UserAuth.builder()
-                    .id(UserUtil.getLoginUser().getId())
-                    .password(BCrypt.hashpw(passwordVO.getNewPassword(), BCrypt.gensalt()))
+                    .id(UserUtil.getLoginUser(request).getId())
+                    .password(secret)
                     .build();
             userAuthDao.updateById(userAuth);
         } else {
@@ -229,6 +198,65 @@ public class UserAuthServiceImpl extends ServiceImpl<UserAuthDao, UserAuth> impl
         return new PageDTO<>(userBackDTOList, count);
     }
 
+
+
+
+    /**
+     * 更新用户信息
+     */
+    @Async
+    public void updateUserInfo() {
+        UserInfoDTO userInfoDTO = (UserInfoDTO)request.getSession().getAttribute("UserInfoDTO");
+        if (userInfoDTO != null) {
+            UserAuth userAuth = UserAuth.builder()
+                .id(userInfoDTO.getId())
+                .ipAddr(UserUtil.getLoginUser(request).getIpAddr())
+                .ipSource(UserUtil.getLoginUser(request).getIpSource())
+                .lastLoginTime(UserUtil.getLoginUser(request).getLastLoginTime())
+                .build();
+            // 主要更新登录ip、ip源、登陆时间
+            userAuthDao.updateById(userAuth);
+        }
+    }
+
+
+    @Override
+    public void Logout(String sessionID) {
+        sessionManager.deleteSession(sessionID);
+    }
+
+    /**
+     * 普通登录
+     * @param username 账号
+     * @param pwd  密码
+     * @return
+     */
+    @Transactional(rollbackFor = Exception.class)
+    @Override
+    public UserInfoDTO Login(String username, String pwd, HttpServletRequest request) {
+        // 创建登录信息
+        UserInfoDTO userInfoDTO;
+        // 登录校验,校验成功则返回用户信息
+        UserAuth user = getUserAuth(username, pwd);
+        if (Objects.nonNull(user) && Objects.nonNull(user.getUserInfoId())) {
+            // 存在则返回数据库中的用户信息登录封装
+            userInfoDTO = getUserInfoDTO(user);
+        } else {
+            // 不存在则抛出异常
+            return null;
+        }
+        // 将登录信息放入redis管理
+//        redisTemplate.boundValueOps(RedisPrefixConst.LOGIN + userInfoDTO.getId());
+//        redisTemplate.expire(RedisPrefixConst.LOGIN + userInfoDTO.getId(), LOGIN_EXPIRE_TIME, TimeUnit.MILLISECONDS);
+
+        // 存入session
+        request.getSession().setAttribute("userInfoDTO", userInfoDTO);
+        sessionManager.addSession(userInfoDTO.getUserInfoId(), request.getSession());
+        // 异步更新
+        updateUserInfo();
+        return userInfoDTO;
+    }
+
     /**
      * qq登录
      * 登录逻辑就是qq登录携带账号id和token，检查数据库是否存在该第三方账号，存在就更新登录信息，就成功登陆。
@@ -240,7 +268,7 @@ public class UserAuthServiceImpl extends ServiceImpl<UserAuthDao, UserAuth> impl
 
     @Transactional(rollbackFor = Exception.class)
     @Override
-    public UserInfoDTO qqLogin(String openId, String accessToken) {
+    public UserInfoDTO qqLogin(String openId, String accessToken, HttpServletRequest request) {
         // 创建登录信息
         UserInfoDTO userInfoDTO;
         // 校验该第三方账户信息是否存在
@@ -262,9 +290,10 @@ public class UserAuthServiceImpl extends ServiceImpl<UserAuthDao, UserAuth> impl
             // 获取ip地址
             String ipAddr = IpUtil.getIpAddr(request);
             String ipSource = IpUtil.getIpSource(ipAddr);
-            // 将用户账号和信息存入数据库
+            // 信息存入数据库，这里没有邮箱，邮箱需要自己绑定
             UserInfo userInfo = convertUserInfo(Objects.requireNonNull(userInfoMap).get("nickname"), userInfoMap.get("figureurl_qq_1"));
             userInfoDao.insert(userInfo);
+            // 将用户账号存入数据库
             UserAuth userAuth = convertUserAuth(userInfo.getId(), openId, accessToken, ipAddr, ipSource, LoginTypeEnum.QQ.getType());
             userAuthDao.insert(userAuth);
             // 绑定角色
@@ -273,16 +302,13 @@ public class UserAuthServiceImpl extends ServiceImpl<UserAuthDao, UserAuth> impl
             userInfoDTO = convertLoginUser(userAuth, userInfo, Lists.newArrayList(RoleEnum.USER.getLabel()), null, null, request);
         }
 
-        // 将登录信息放入springSecurity管理
-        UsernamePasswordAuthenticationToken auth = new UsernamePasswordAuthenticationToken(userInfoDTO, null, userInfoDTO.getAuthorities());
-        SecurityContextHolder.getContext().setAuthentication(auth);
+        // 将登录信息存入session
+        request.getSession().setAttribute("userInfoDTO", userInfoDTO);
+        sessionManager.addSession(userInfoDTO.getUserInfoId(), request.getSession());
+
         return userInfoDTO;
     }
 
-    @Override
-    public UserInfoDTO weiBoLogin(String code) {
-        return null;
-    }
 
 
     /**
@@ -298,68 +324,6 @@ public class UserAuthServiceImpl extends ServiceImpl<UserAuthDao, UserAuth> impl
         userRoleDao.insert(userRole);
     }
 
-
-    /**
-     * 微博登录
-     * @param code 微博code
-     * @return
-     */
-
-    /*
-    @Transactional(rollbackFor = ServeException.class)
-    @Override
-    public UserInfoDTO weiBoLogin(String code) {
-        // 创建登录信息
-        UserInfoDTO userInfoDTO;
-        // 用code换取accessToken和uid
-        MultiValueMap<String, String> formData = new LinkedMultiValueMap<>();
-        // 定义请求参数
-        formData.add("client_id", WEIBO_APP_ID);
-        formData.add("client_secret", WEIBO_APP_SECRET);
-        formData.add("grant_type", WEIBO_GRANT_TYPE);
-        formData.add("redirect_uri", WEIBO_REDIRECT_URI);
-        formData.add("code", code);
-        // 构建参数体
-        HttpEntity<MultiValueMap> requestEntity = new HttpEntity<>(formData, null);
-        // 获取accessToken和uid
-        Map<String, String> result = restTemplate.exchange(WEIBO_ACCESS_TOKEN_URI, HttpMethod.POST, requestEntity, Map.class).getBody();
-        String uid = Objects.requireNonNull(result).get("uid");
-        String accessToken = result.get("access_token");
-
-        // 校验该第三方账户信息是否存在
-        UserAuth user = getUserAuth(uid, LoginTypeEnum.WEIBO.getType());
-        if (Objects.nonNull(user) && Objects.nonNull(user.getUserInfoId())) {
-            // 存在则返回数据库中的用户信息封装
-            userInfoDTO = getUserInfoDTO(user);
-        } else {
-            // 不存在则用accessToken和uid换取微博用户信息，并创建用户
-            Map<String, String> data = new HashMap<>(16);
-            // 定义请求参数
-            data.put("uid", uid);
-            data.put("access_token", accessToken);
-            // 获取微博用户信息
-            Map<String, String> userInfoMap = restTemplate.getForObject(WEIBO_USER_INFO_URI, Map.class, data);
-
-            // 获取ip地址
-            String ipAddr = IpUtil.getIpAddr(request);
-            String ipSource = IpUtil.getIpSource(ipAddr);
-            // 将账号和信息存入数据库
-            UserInfo userInfo = convertUserInfo(Objects.requireNonNull(userInfoMap).get("screen_name"), userInfoMap.get("profile_image_url"));
-            userInfoDao.insert(userInfo);
-            UserAuth userAuth = convertUserAuth(userInfo.getId(), uid, accessToken, ipAddr, ipSource, LoginTypeEnum.WEIBO.getType());
-            userAuthDao.insert(userAuth);
-            // 绑定角色
-            saveUserRole(userInfo);
-            // 封装登录信息
-            userInfoDTO = convertLoginUser(userAuth, userInfo, Lists.newArrayList(RoleEnum.USER.getLabel()), null, null, request);
-        }
-
-        // 将登录信息放入springSecurity管理
-        UsernamePasswordAuthenticationToken auth = new UsernamePasswordAuthenticationToken(userInfoDTO, null, userInfoDTO.getAuthorities());
-        SecurityContextHolder.getContext().setAuthentication(auth);
-        return userInfoDTO;
-    }
-     */
 
 
     /**
@@ -445,6 +409,28 @@ public class UserAuthServiceImpl extends ServiceImpl<UserAuthDao, UserAuth> impl
                 .select(UserAuth::getId, UserAuth::getUserInfoId, UserAuth::getLoginType)
                 .eq(UserAuth::getUsername, openId)
                 .eq(UserAuth::getLoginType, loginType));
+    }
+
+    /**
+     * 检验账号密码是否正确
+     *
+     * @param username    账号
+     * @param pwd       密码
+     * @return 用户账号信息
+     */
+    private UserAuth getUserAuth(String username, String pwd) {
+        UserAuth userAuth = userAuthDao.selectOne(new LambdaQueryWrapper<UserAuth>()
+            .select(UserAuth::getId, UserAuth::getUserInfoId, UserAuth::getPassword, UserAuth::getLoginType)
+            .eq(UserAuth::getUsername, username));
+
+        // 密码正确
+        if(userAuth != null && DigestUtils.md5DigestAsHex(pwd.getBytes()).equals(userAuth.getPassword())) {
+            //置空再返回
+            userAuth.setPassword("");
+            return userAuth;
+        }
+        // 查询账号信息
+        return null;
     }
 
 

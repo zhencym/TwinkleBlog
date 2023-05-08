@@ -17,7 +17,7 @@ export default {
     const that = this;
     //关闭登录框
     that.$store.state.loginFlag = false;
-    //通过路径判断是微博登录还是qq登录
+    //通过路径判断是qq登录
     if (that.$route.path == "/oauth/login/qq") {
       // 拿到openId，accessToken传入后台
       if (QC.Login.check()) {
@@ -45,27 +45,6 @@ export default {
       } else {
         that.$toast({ type: "error", message: "登录失败" });
       }
-    } else {
-      //微博登录
-      let param = new URLSearchParams();
-      //将code传入后台
-      param.append("code", this.$route.query.code);
-      that.axios.post("/api/users/oauth/weibo", param).then(({ data }) => {
-        if (data.flag) {
-          //保存登录状态
-          that.$store.commit("login", data.data);
-          if (data.data.email == null) {
-            that.$toast({
-              type: "warnning",
-              message: "请绑定邮箱以便及时收到回复"
-            });
-          } else {
-            that.$toast({ type: "success", message: data.message });
-          }
-        } else {
-          that.$toast({ type: "error", message: data.message });
-        }
-      });
     }
     //跳转回原页面
     that.$router.push({ path: that.$store.state.loginUrl });

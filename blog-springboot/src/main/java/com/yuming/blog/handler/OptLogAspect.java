@@ -6,8 +6,6 @@ import com.yuming.blog.dao.OperationLogDao;
 import com.yuming.blog.entity.OperationLog;
 import com.yuming.blog.utils.IpUtil;
 import com.yuming.blog.utils.UserUtil;
-import io.swagger.annotations.Api;
-import io.swagger.annotations.ApiOperation;
 import org.aspectj.lang.JoinPoint;
 import org.aspectj.lang.annotation.AfterReturning;
 import org.aspectj.lang.annotation.Aspect;
@@ -28,8 +26,6 @@ import java.util.Objects;
 /**
  * 操作日志切面处理
  * 用切面实现操作记录保存
- *
- *
  **/
 @Aspect
 @Component
@@ -38,8 +34,13 @@ public class OptLogAspect {
     @Autowired
     private OperationLogDao operationLogDao;
 
+    @Autowired
+    private HttpServletRequest request;
+
     /**
      * 设置操作日志切入点 记录操作日志 在注解的位置切入代码
+     * 即在使用了@OptLog注解的地方切入代码
+     * 方便重用切入点表达式
      */
     @Pointcut("@annotation(com.yuming.blog.annotation.OptLog)")
     public void optLogPointCut() {
@@ -48,11 +49,14 @@ public class OptLogAspect {
 
     /**
      * 正常返回通知，拦截用户操作日志，连接点正常执行完成后执行， 如果连接点抛出异常，则不会执行
-     *
+     * 后置通知，目标函数执行完后切入
+     * returning，接收目标方法的返回值，同时赋值给通知方法的某个形参，
+     * 在同一个切面类中使用时，直接用别名：@AfterReturning(value = "optLogPointCut()", returning = "keys")
+     * 在不同切面类中使用时，输入全类名：@AfterReturning("com.yuming.handler.optLogPointCut()")
      * @param joinPoint 切入点
      * @param keys      返回结果
+     *
      */
-    @Async
     @Transactional(rollbackFor = Exception.class)
     @AfterReturning(value = "optLogPointCut()", returning = "keys")
     public void saveOptLog(JoinPoint joinPoint, Object keys) {
@@ -60,21 +64,20 @@ public class OptLogAspect {
         RequestAttributes requestAttributes = RequestContextHolder.getRequestAttributes();
         // 从获取RequestAttributes中获取HttpServletRequest的信息
         HttpServletRequest request = (HttpServletRequest) Objects.requireNonNull(requestAttributes).resolveReference(RequestAttributes.REFERENCE_REQUEST);
+
         OperationLog operationLog = new OperationLog();
         // 从切面织入点处通过反射机制获取织入点处的方法
         MethodSignature signature = (MethodSignature) joinPoint.getSignature();
         // 获取切入点所在的方法
         Method method = signature.getMethod();
         // 获取操作
-        Api api = (Api) signature.getDeclaringType().getAnnotation(Api.class);
-        ApiOperation apiOperation = method.getAnnotation(ApiOperation.class);
         OptLog optLog = method.getAnnotation(OptLog.class);
         // 操作模块
-        operationLog.setOptModule(api.tags()[0]);
+        operationLog.setOptModule(optLog.optModule());
         // 操作类型
         operationLog.setOptType(optLog.optType());
         // 操作描述
-        operationLog.setOptDesc(apiOperation.value());
+        operationLog.setOptDesc(optLog.optDesc());
         // 获取请求的类名
         String className = joinPoint.getTarget().getClass().getName();
         // 获取请求的方法名
@@ -89,9 +92,9 @@ public class OptLogAspect {
         // 返回结果
         operationLog.setResponseData(JSON.toJSONString(keys));
         // 请求用户ID
-        operationLog.setUserId(UserUtil.getLoginUser().getId());
+        operationLog.setUserId(UserUtil.getLoginUser(request).getId());
         // 请求用户
-        operationLog.setNickname(UserUtil.getLoginUser().getNickname());
+        operationLog.setNickname(UserUtil.getLoginUser(request).getNickname());
         // 请求IP
         String ipAddr = IpUtil.getIpAddr(request);
         operationLog.setIpAddr(ipAddr);

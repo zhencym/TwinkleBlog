@@ -10,14 +10,12 @@ import com.yuming.blog.dto.labelOptionDTO;
 import com.yuming.blog.entity.Resource;
 import com.yuming.blog.entity.RoleResource;
 import com.yuming.blog.exception.ServeException;
-import com.yuming.blog.handler.FilterInvocationSecurityMetadataSourceImpl;
+import com.yuming.blog.login.UserFilterMetadata;
 import com.yuming.blog.service.ResourceService;
 import com.yuming.blog.utils.BeanCopyUtil;
 import com.yuming.blog.vo.ResourceVO;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.client.RestTemplate;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -26,70 +24,11 @@ import java.util.stream.Collectors;
 @Service
 public class ResourceServiceImpl extends ServiceImpl<ResourceDao, Resource> implements ResourceService {
 
-    /**
-     * Http相应模板，RestTemplate
-     * 简化了与http服务的通信方式，统一了RESTful的标准，封装了http链接， 我们只需要传入url及返回值类型即可
-     */
-    @Autowired
-    private RestTemplate restTemplate;
     @Autowired
     private RoleResourceDao roleResourceDao;
-    /**
-     * 储存应用中受保护的资源的安全元数据
-     */
+
     @Autowired
-    private FilterInvocationSecurityMetadataSourceImpl filterInvocationSecurityMetadataSource;
-
-    @Transactional(rollbackFor = Exception.class)
-    @Override
-    public void importSwagger() {
-        // 删除所有资源
-        this.remove(null);
-        roleResourceDao.delete(null);
-
-        List<Resource> resourceList = new ArrayList<>();
-        // 指定返回json数据格式：map
-        Map<String, Object> data = restTemplate.getForObject("http://localhost:8088/v2/api-docs", Map.class);
-
-        // 获取所有模块（没有parent_id的那种）
-        List<Map<String, String>> tagList = (List<Map<String, String>>) data.get("tags");//tags就是模块信息
-        tagList.forEach(item -> {
-            Resource resource = Resource.builder()
-                    .resourceName(item.get("name"))
-                    .createTime(new Date())
-                    .updateTime(new Date())
-                    .isDisable(CommonConst.FALSE)
-                    .isAnonymous(CommonConst.FALSE)
-                    .build();
-            resourceList.add(resource);
-        });
-        this.saveBatch(resourceList);
-
-        Map<String, Integer> permissionMap = resourceList.stream()
-                .collect(Collectors.toMap(Resource::getResourceName, Resource::getId));
-        resourceList.clear();
-        // 获取所有接口（有parent_id的那种）
-        Map<String, Map<String, Map<String, Object>>> path = (Map<String, Map<String, Map<String, Object>>>) data.get("paths");
-        path.forEach((url, value) -> value.forEach((requestMethod, info) -> {
-            String permissionName = info.get("summary").toString();
-            List<String> tag = (List<String>) info.get("tags");
-            Integer parentId = permissionMap.get(tag.get(0));
-            Resource resource = Resource.builder()
-                    .resourceName(permissionName)
-                    .url(url.replaceAll("\\{[^}]*\\}", "*"))
-                    .parentId(parentId)
-                    .requestMethod(requestMethod.toUpperCase())
-                    .isDisable(CommonConst.FALSE)
-                    .isAnonymous(CommonConst.FALSE)
-                    .createTime(new Date())
-                    .updateTime(new Date())
-                    .build();
-            resourceList.add(resource);
-        }));
-        this.saveBatch(resourceList);
-    }
-
-
+    private UserFilterMetadata userFilterMetadata;
 
     @Override
     public void saveOrUpdateResource(ResourceVO resourceVO) {
@@ -97,8 +36,8 @@ public class ResourceServiceImpl extends ServiceImpl<ResourceDao, Resource> impl
         Resource resource = BeanCopyUtil.copyObject(resourceVO, Resource.class);
         resource.setCreateTime(Objects.isNull(resource.getId()) ? new Date() : null);
         resource.setUpdateTime(Objects.nonNull(resource.getId()) ? new Date() : null);
-        // 重新加载角色资源信息
-        filterInvocationSecurityMetadataSource.clearDataSource();
+        // 先清除，等待重新加载角色资源信息； 懒加载，但是线程不安全
+        userFilterMetadata.clearDataSource();
         this.saveOrUpdate(resource);
     }
 

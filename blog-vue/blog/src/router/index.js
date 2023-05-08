@@ -86,10 +86,6 @@ const routes = [
   {
     path: "/oauth/login/qq",
     component: OauthLogin
-  },
-  {
-    path: "/oauth/login/weibo",
-    component: OauthLogin
   }
 ];
 

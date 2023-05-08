@@ -248,11 +248,11 @@
         FROM
         tb_article
         WHERE
-        id IN   <!-- foreach循环是为了构造出(value1,value2)的格式-->
+        id IN   <!-- foreach循环构造出(value1,value2)的格式-->
         <foreach collection="articleIdList" item="item" open="(" separator="," close=")">
             #{item}
         </foreach>
-        ORDER BY field  <!-- field是自定义排序，按照id字段，后面自定义的顺序排序，其实也就是articleIdList里面的id的顺序-->
+        ORDER BY field  <!-- field为自定义排序字段，按照id字段，后面自定义的顺序排序，也就是articleIdList里面的id的顺序-->
         <foreach collection="articleIdList" item="item" open="(id," separator="," close=")">
             #{item}
         </foreach>

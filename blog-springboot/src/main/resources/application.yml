@@ -27,11 +27,11 @@ spring:
     driver-class-name: com.mysql.cj.jdbc.Driver
     #url: jdbc:mysql://192.168.95.137:3306/blog?serverTimezone=GMT%2B8&allowMultiQueries=true
     #url: jdbc:mysql://mysql:3306/blog?serverTimezone=GMT%2B8&allowMultiQueries=true
-    url: jdbc:mysql://43.139.142.79:3306/blog?serverTimezone=GMT%2B8&allowMultiQueries=true
-    #43.139.142.79
+    url: jdbc:mysql://mysql:3306/blog?serverTimezone=GMT%2B8&allowMultiQueries=true
+
     username: root
     #password: 666666
-    password: cymsql66
+    password: 666666
     hikari:
       minimum-idle: 5
       # 空闲连接存活最大时间，默认600000（10分钟）
@@ -52,8 +52,8 @@ spring:
     port: 6379
     #host: 192.168.95.137
     #host: redis
-    host: 43.139.142.79
-    password: credis66
+    host: redis
+    password: 666666
     database: 1
     #配置redis连接超时配置时间,大于Redis服务器配置的 tcp-keepalive = 300 存活时间即可
     lettuce:
@@ -62,9 +62,9 @@ spring:
   mail:
     host: smtp.qq.com
 #    username: 1540504095@qq.com
-#    password: sqkiztpsoovohiec
+#    password: 666666
     username: 1540504013@qq.com
-    password: brrvzzwpouzkjbhd
+    password: 666666
     default-encoding: UTF-8
     port: 587
     properties:
@@ -80,7 +80,7 @@ spring:
       max-request-size: 100MB
   #配置MQ
   kafka:
-    bootstrap-servers: 43.139.142.79:9092
+    bootstrap-servers: kafka:9092
     producer:
       # 发生错误后，消息重发的次数。
       retries: 1
@@ -141,6 +141,6 @@ qq:
 aliyun:
   url: "https://cymoss.oss-cn-guangzhou.aliyuncs.com/"
   endpoint: "https://oss-cn-guangzhou.aliyuncs.com/"
-  accessKeyId: "LTAI5t6wBmw7VEosqChdFsmU"
-  accessKeySecret: "tI6JPtOIA0vZ5l3fDknayLaZ51X6bP"
+  accessKeyId: "666666"
+  accessKeySecret: "666666"
   bucketName: "cymoss"

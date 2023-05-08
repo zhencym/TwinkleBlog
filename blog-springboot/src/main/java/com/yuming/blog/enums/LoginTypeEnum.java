@@ -17,11 +17,8 @@ public enum LoginTypeEnum {
     /**
      * QQ登录
      */
-    QQ(1, "QQ登录"),
-    /**
-     * 微博登录
-     */
-    WEIBO(2, "微博登录");
+    QQ(1, "QQ登录");
+
 
     /**
      * 登录方式

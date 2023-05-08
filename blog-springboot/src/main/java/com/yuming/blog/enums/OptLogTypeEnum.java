@@ -6,7 +6,8 @@ import lombok.Getter;
 /**
  * 操作类型枚举
  *
- **/
+ * @author 86186
+ * */
 @Getter
 @AllArgsConstructor
 public enum OptLogTypeEnum {
@@ -21,14 +22,27 @@ public enum OptLogTypeEnum {
     /**
      * 删除
      */
-    REMOVE(3,"删除");
+    REMOVE(3,"删除"),
+    /**
+     * 上传
+     */
+    UPLOAD(4,"上传");
+
     /**
      * 类型
      */
-    private final int type;
+    private int type;
 
     /**
      * 描述
      */
-    private final String desc;
+    private String desc;
+
+    public int getType() {
+        return type;
+    }
+
+    public String getInfo() {
+        return desc;
+    }
 }

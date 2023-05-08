@@ -1,4 +1,4 @@
-package com.yuming.blog.controller;
+package com.yuming.blog.handler;
 
 import com.yuming.blog.exception.ServeException;
 import com.yuming.blog.vo.Result;
